@@ -1,0 +1,63 @@
+[
+    {
+        "name": "id",
+        "type": "INT64",
+        "mode": "REQUIRED"
+    },
+    {
+        "name": "test_id",
+        "type": "INT64",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "status_id",
+        "type": "INT64",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "created_on",
+        "type": "TIMESTAMP",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "created_by",
+        "type": "INT64",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "defects",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "elapsed",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "comment",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "version",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "custom_fields",
+        "type": "JSON",
+        "mode": "NULLABLE",
+        "description": "Custom fields extracted from the result"
+    },
+    {
+        "name": "_extracted_at",
+        "type": "TIMESTAMP",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "_source",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    }
+]

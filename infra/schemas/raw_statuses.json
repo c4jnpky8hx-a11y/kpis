@@ -1,0 +1,57 @@
+[
+    {
+        "name": "id",
+        "type": "INT64",
+        "mode": "REQUIRED"
+    },
+    {
+        "name": "name",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "label",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "color_dark",
+        "type": "INT64",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "color_medium",
+        "type": "INT64",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "color_bright",
+        "type": "INT64",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "is_system",
+        "type": "BOOL",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "is_untested",
+        "type": "BOOL",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "is_final",
+        "type": "BOOL",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "_extracted_at",
+        "type": "TIMESTAMP",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "_source",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    }
+]

@@ -1,0 +1,107 @@
+[
+    {
+        "name": "id",
+        "type": "INT64",
+        "mode": "REQUIRED"
+    },
+    {
+        "name": "title",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "section_id",
+        "type": "INT64",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "template_id",
+        "type": "INT64",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "type_id",
+        "type": "INT64",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "priority_id",
+        "type": "INT64",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "milestone_id",
+        "type": "INT64",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "refs",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "created_by",
+        "type": "INT64",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "created_on",
+        "type": "TIMESTAMP",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "updated_by",
+        "type": "INT64",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "updated_on",
+        "type": "TIMESTAMP",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "estimate",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "estimate_forecast",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "suite_id",
+        "type": "INT64",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "display_order",
+        "type": "INT64",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "is_deleted",
+        "type": "INT64",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "custom_status",
+        "type": "INT64",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "custom_automation_type",
+        "type": "INT64",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "_extracted_at",
+        "type": "TIMESTAMP",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "_source",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    }
+]

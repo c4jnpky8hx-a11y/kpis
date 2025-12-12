@@ -1,0 +1,12 @@
+[
+  { "name": "id", "type": "INT64", "mode": "REQUIRED" },
+  { "name": "name", "type": "STRING", "mode": "NULLABLE" },
+  { "name": "announcement", "type": "STRING", "mode": "NULLABLE" },
+  { "name": "show_announcement", "type": "BOOL", "mode": "NULLABLE" },
+  { "name": "is_completed", "type": "BOOL", "mode": "NULLABLE" },
+  { "name": "completed_on", "type": "TIMESTAMP", "mode": "NULLABLE" },
+  { "name": "suite_mode", "type": "INT64", "mode": "NULLABLE" },
+  { "name": "url", "type": "STRING", "mode": "NULLABLE" },
+  { "name": "_extracted_at", "type": "TIMESTAMP", "mode": "NULLABLE" },
+  { "name": "_source", "type": "STRING", "mode": "NULLABLE" }
+]

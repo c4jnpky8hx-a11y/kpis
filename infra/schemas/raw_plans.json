@@ -1,0 +1,72 @@
+[
+    {
+        "name": "id",
+        "type": "INT64",
+        "mode": "REQUIRED"
+    },
+    {
+        "name": "project_id",
+        "type": "INT64",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "milestone_id",
+        "type": "INT64",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "name",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "description",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "is_completed",
+        "type": "BOOL",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "completed_on",
+        "type": "TIMESTAMP",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "created_on",
+        "type": "TIMESTAMP",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "created_by",
+        "type": "INT64",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "entries",
+        "type": "JSON",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "url",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "_extracted_at",
+        "type": "TIMESTAMP",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "_source",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "custom_fields",
+        "type": "JSON",
+        "mode": "NULLABLE"
+    }
+]

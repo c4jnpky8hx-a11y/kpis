@@ -1,0 +1,87 @@
+[
+    {
+        "name": "id",
+        "type": "INT64",
+        "mode": "REQUIRED"
+    },
+    {
+        "name": "case_id",
+        "type": "INT64",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "run_id",
+        "type": "INT64",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "status_id",
+        "type": "INT64",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "assignedto_id",
+        "type": "INT64",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "title",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "template_id",
+        "type": "INT64",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "type_id",
+        "type": "INT64",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "priority_id",
+        "type": "INT64",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "estimate",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "estimate_forecast",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "refs",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "milestone_id",
+        "type": "INT64",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "custom_status",
+        "type": "INT64",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "custom_automation_type",
+        "type": "INT64",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "_extracted_at",
+        "type": "TIMESTAMP",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "_source",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    }
+]
