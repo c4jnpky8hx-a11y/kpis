@@ -218,6 +218,10 @@ resource "google_cloud_run_service" "default" {
           name  = "BQ_DATASET"
           value = google_bigquery_dataset.testrail_data.dataset_id
         }
+        env {
+          name  = "SYNC_TOKEN"
+          value = var.sync_token
+        }
         # Secrets will be injected as env vars in the actual deployment
       }
     }
@@ -247,4 +251,13 @@ resource "google_cloud_scheduler_job" "sync_runs" {
       service_account_email = google_service_account.service_runner.email
     }
   }
+}
+
+# Allow unauthenticated invocations (Public Access)
+# Secured by application-level token check
+resource "google_cloud_run_service_iam_member" "public_invoker" {
+  service  = google_cloud_run_service.default.name
+  location = google_cloud_run_service.default.location
+  role     = "roles/run.invoker"
+  member   = "allUsers"
 }

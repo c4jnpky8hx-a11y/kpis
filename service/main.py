@@ -16,6 +16,15 @@ def health_check():
 @app.route('/jobs/sync', methods=['POST'])
 def trigger_sync():
     entity = request.args.get('entity')
+    token = request.args.get('token')
+    
+    expected_token = os.environ.get('SYNC_TOKEN')
+    
+    # Security Check
+    if expected_token and token != expected_token:
+        logger.warning(f"Unauthorized sync attempt with token: {token}")
+        return jsonify({"error": "Unauthorized"}), 401
+
     if not entity:
         return jsonify({"error": "Missing 'entity' parameter"}), 400
     

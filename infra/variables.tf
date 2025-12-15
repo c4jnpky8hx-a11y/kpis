@@ -14,3 +14,8 @@ variable "bq_dataset_id" {
   type        = string
   default     = "testrail_kpis"
 }
+
+variable "sync_token" {
+  description = "Token to secure public sync endpoint"
+  type        = string
+}
