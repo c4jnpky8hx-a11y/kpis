@@ -34,10 +34,11 @@ SELECT
   r.created_on,
   r.completed_on,
   r.is_completed as is_closed,
-  r.passed_count,
-  r.failed_count,
-  r.blocked_count,
-  r.total_tests,
+  -- Standard Metrics (Project 17 Only)
+  CASE WHEN r.project_id = 17 THEN r.passed_count ELSE 0 END as passed_count,
+  CASE WHEN r.project_id = 17 THEN r.failed_count ELSE 0 END as failed_count,
+  CASE WHEN r.project_id = 17 THEN r.blocked_count ELSE 0 END as blocked_count,
+  CASE WHEN r.project_id = 17 THEN r.total_tests ELSE 0 END as total_tests,
   r.month_key,
   
   -- Business Logic: Effective Start Date
@@ -50,27 +51,27 @@ SELECT
   -- Placeholder: created_on + 14 days
   DATE_ADD(DATE(r.created_on), INTERVAL 14 DAY) as eff_due_date,
   
-  -- KPI: On Time Start
+  -- KPI: On Time Start (Project 17 Only)
   -- Logic: If started within X days of plan start? 
   -- Placeholder: Always true for now unless we have a 'planned_start_date'
-  TRUE as on_time_start,
+  CASE WHEN r.project_id = 17 THEN TRUE ELSE NULL END as on_time_start,
   
-  -- KPI: On Time End
+  -- KPI: On Time End (Project 17 Only)
   -- Logic: completed_on <= eff_due_date
   CASE 
-    WHEN r.is_completed AND DATE(r.completed_on) <= DATE_ADD(DATE(r.created_on), INTERVAL 14 DAY) THEN TRUE
+    WHEN r.project_id = 17 AND r.is_completed AND DATE(r.completed_on) <= DATE_ADD(DATE(r.created_on), INTERVAL 14 DAY) THEN TRUE
     ELSE FALSE 
   END as on_time_end,
   
-  -- KPI: Is Blocked
+  -- KPI: Is Blocked (Project 17 Only)
   -- Logic: If blocked_count > 0
-  (r.blocked_count > 0) as is_blocked,
+  CASE WHEN r.project_id = 17 AND r.blocked_count > 0 THEN TRUE ELSE FALSE END as is_blocked,
   
-  -- KPI: UAT Certified
+  -- KPI: UAT Certified (Project 23 Only)
   -- Logic: If passed rate > 95% and no critical defects?
   -- Placeholder: passed_count / total_tests > 0.95
   CASE
-    WHEN r.total_tests > 0 AND (r.passed_count / r.total_tests) >= 0.95 THEN TRUE
+    WHEN r.project_id = 23 AND r.total_tests > 0 AND (r.passed_count / r.total_tests) >= 0.95 THEN TRUE
     ELSE FALSE
   END as uat_certified
 

@@ -110,13 +110,13 @@ SELECT
   
   -- 1. Iniciativas Certificadas / En Proceso (Excluding UAT/Practice)
   CASE 
-    WHEN project_id IN (12, 21) THEN NULL
+    WHEN project_id IN (17, 23, 12) THEN NULL
     WHEN plan_is_completed THEN 'Certificada'
     ELSE 'En Proceso'
   END as Estado_Iniciativa,
   
-  IF(project_id NOT IN (12, 21) AND plan_is_completed, 1, 0) as is_certified,
-  IF(project_id NOT IN (12, 21) AND NOT plan_is_completed, 1, 0) as is_in_process,
+  IF(project_id NOT IN (17, 23, 12) AND plan_is_completed, 1, 0) as is_certified,
+  IF(project_id NOT IN (17, 23, 12) AND NOT plan_is_completed, 1, 0) as is_in_process,
   
   -- 2. UAT Metrics (Project 12 Only)
   -- Soluciones Devueltas
@@ -132,28 +132,28 @@ SELECT
   IF(project_id = 12, total_iterations, 0) as Iteraciones_UAT,
   
   -- 3. Soluciones Aceptadas (Passed Cases)
-  total_passed as Soluciones_Aceptadas_General,
+  IF(project_id NOT IN (17, 23, 12), total_passed, 0) as Soluciones_Aceptadas_General,
   
   -- 4. Entrega a Tiempo & Desviacion
-  on_time_to_qa_count,
-  on_time_from_qa_count,
-  total_runs,
-  SAFE_DIVIDE(on_time_to_qa_count, total_runs) as on_time_to_qa_rate,
-  SAFE_DIVIDE(on_time_from_qa_count, total_runs) as on_time_from_qa_rate,
-  avg_desviacion_inicio,
+  IF(project_id NOT IN (17, 23, 12), on_time_to_qa_count, 0) as on_time_to_qa_count,
+  IF(project_id NOT IN (17, 23, 12), on_time_from_qa_count, 0) as on_time_from_qa_count,
+  IF(project_id NOT IN (17, 23, 12), total_runs, 0) as total_runs,
+  SAFE_DIVIDE(IF(project_id NOT IN (17, 23, 12), on_time_to_qa_count, 0), IF(project_id NOT IN (17, 23, 12), total_runs, 0)) as on_time_to_qa_rate,
+  SAFE_DIVIDE(IF(project_id NOT IN (17, 23, 12), on_time_from_qa_count, 0), IF(project_id NOT IN (17, 23, 12), total_runs, 0)) as on_time_from_qa_rate,
+  IF(project_id NOT IN (17, 23, 12), avg_desviacion_inicio, NULL) as avg_desviacion_inicio,
   
   -- 5. Defectos por Iniciativa & Prioridad
-  total_defects as Total_Defectos,
-  active_defects_proxy as Defectos_Activos,
-  total_defects_critical,
-  total_defects_high,
-  total_defects_medium,
-  total_defects_low,
+  IF(project_id NOT IN (17, 23, 12), total_defects, 0) as Total_Defectos,
+  IF(project_id NOT IN (17, 23, 12), active_defects_proxy, 0) as Defectos_Activos,
+  IF(project_id NOT IN (17, 23, 12), total_defects_critical, 0) as total_defects_critical,
+  IF(project_id NOT IN (17, 23, 12), total_defects_high, 0) as total_defects_high,
+  IF(project_id NOT IN (17, 23, 12), total_defects_medium, 0) as total_defects_medium,
+  IF(project_id NOT IN (17, 23, 12), total_defects_low, 0) as total_defects_low,
   
   -- Chart Metrics
-  total_returned_cases,
-  total_in_process,
-  total_blocked,
-  total_untested
+  IF(project_id NOT IN (17, 23, 12), total_returned_cases, 0) as total_returned_cases,
+  IF(project_id NOT IN (17, 23, 12), total_in_process, 0) as total_in_process,
+  IF(project_id NOT IN (17, 23, 12), total_blocked, 0) as total_blocked,
+  IF(project_id NOT IN (17, 23, 12), total_untested, 0) as total_untested
 
 FROM plan_aggs;
