@@ -11,7 +11,7 @@ SERVICE_URL=$(gcloud run services describe $SERVICE_NAME --region $REGION --proj
 function show_help {
     echo "Usage: ./manage.sh [command]"
     echo "Commands:"
-    echo "  sync [entity]   Trigger sync for an entity (runs, projects, plans, suites, cases, tests, results, milestones, statuses)"
+    echo "  sync [entity]   Trigger sync for an entity (runs, projects, plans, suites, cases, tests, results, milestones, statuses, jira_issues)"
     echo "  status          Check the sync state from BigQuery"
     echo "  logs            Tail the Cloud Run logs"
 }

@@ -25,7 +25,17 @@ create_secret() {
 }
 
 create_secret "testrail_url" "$TR_URL"
-create_secret "testrail_user" "$TR_USER"
-create_secret "testrail_api_key" "$TR_KEY"
+read -p "Enter Jira Email: " JIRA_EMAIL
+read -s -p "Enter Jira API Token: " JIRA_TOKEN
+echo ""
+
+echo "Creating secrets file..."
+cat > secrets.env <<EOF
+TESTRAIL_URL=$TESTRAIL_URL
+TESTRAIL_USER=$TESTRAIL_USER
+TESTRAIL_TOKEN=$TESTRAIL_TOKEN
+JIRA_EMAIL=$JIRA_EMAIL
+JIRA_TOKEN=$JIRA_TOKEN
+EOF
 
 echo "Secrets updated successfully."

@@ -124,22 +124,22 @@ SELECT
   IF(project_id = 17 AND NOT plan_is_completed, 1, 0) as is_in_process,
   
   -- 2. UAT Metrics (Project 23 Only)
-  -- Soluciones Devueltas
-  IF(project_id = 23, total_defects, 0) as Soluciones_Devueltas_UAT,
+  -- Soluciones Devueltas: If Plan has > 0 defects, count as 1 "Returned Solution"
+  IF(project_id = 23 AND total_defects > 0, 1, 0) as Soluciones_Devueltas_UAT,
   
-  -- Soluciones Certificadas (Completed AND Signed)
-  -- Logic adapted for Project 23
-  IF(project_id = 23 AND plan_is_completed AND acta_certificacion IS NOT NULL, 1, 0) as Soluciones_Certificadas_UAT,
+  -- Soluciones Certificadas: Plan Completed AND NO Acta (NULL)
+  IF(project_id = 23 AND plan_is_completed AND acta_certificacion IS NULL, 1, 0) as Soluciones_Certificadas_UAT,
   
-  -- Iniciativas Firmadas (Signed)
-  IF(project_id = 23 AND acta_certificacion IS NOT NULL, 1, 0) as Iniciativas_Firmadas_UAT,
+  -- Iniciativas Firmadas: Plan Completed AND Has Acta (NOT NULL)
+  IF(project_id = 23 AND plan_is_completed AND acta_certificacion IS NOT NULL, 1, 0) as Iniciativas_Firmadas_UAT,
   
   -- Iteraciones (Reincidencia)
   IF(project_id = 23, total_iterations, 0) as Iteraciones_UAT,
   
   -- 3. Soluciones Aceptadas (Passed Cases)
   -- 3. Soluciones Aceptadas (Passed Cases)
-  IF(project_id = 17, total_passed, 0) as Soluciones_Aceptadas_General,
+  -- 3. Soluciones Aceptadas (Passed Cases) - UAT Indicator (Project 23)
+  IF(project_id = 23, total_passed, 0) as Soluciones_Aceptadas_General,
   
   -- 4. Entrega a Tiempo & Desviacion
   -- 4. Entrega a Tiempo & Desviacion
