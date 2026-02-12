@@ -116,16 +116,41 @@ class TestRailClient:
         return data
 
     def get_cases(self, project_id, suite_id=None):
-        params = {}
-        if suite_id:
-            params['suite_id'] = suite_id
-        # get_cases is often paginated or returns all. V2 usually returns all for small projects, but large ones paginated.
-        # Let's assume pagination logic similar to get_results if needed, or just _get if simple list.
-        # Checking docs: get_cases/{project_id} returns list.
-        data = self._get(f"get_cases/{project_id}", params=params)
-        if isinstance(data, dict) and 'cases' in data:
-            return data['cases']
-        return data
+        cases = []
+        offset = 0
+        limit = 250
+        while True:
+            params = {'offset': offset, 'limit': limit}
+            if suite_id:
+                params['suite_id'] = suite_id
+            
+            data = self._get(f"get_cases/{project_id}", params=params)
+            
+            # Handle wrapped response if any (V2 usually returns object with 'cases', 'offset', 'size', '_links' etc. for large projects)
+            # Or just list? 
+            # API docs: "If the project is operating in strict mode (option 'suite_mode' = 3), ... returns cases for specific suite."
+            # The response struct: { "offset": 0, "limit": 250, "size": 10, "_links": ..., "cases": [...] }
+            
+            batch = []
+            if isinstance(data, dict):
+                if 'cases' in data:
+                    batch = data['cases']
+            elif isinstance(data, list):
+                # Older API or small count might return list directly?
+                # Safer to handle both.
+                batch = data
+            
+            if not batch:
+                break
+                
+            cases.extend(batch)
+            
+            if len(batch) < limit:
+                break
+                
+            offset += limit
+            
+        return cases
 
     def get_tests(self, run_id):
         data = self._get(f"get_tests/{run_id}")
@@ -141,3 +166,10 @@ class TestRailClient:
 
     def get_milestone(self, milestone_id):
         return self._get(f"get_milestone/{milestone_id}")
+
+    def get_users(self):
+        """
+        Fetches all users.
+        """
+        # get_users returns a list of users directly
+        return self._get("get_users")

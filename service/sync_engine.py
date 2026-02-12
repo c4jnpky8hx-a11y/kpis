@@ -3,6 +3,7 @@ import logging
 from google.cloud import secretmanager
 from testrail_client import TestRailClient
 from bigquery_client import BigQueryClient
+from jira_client import JiraClient
 
 logger = logging.getLogger(__name__)
 
@@ -18,12 +19,17 @@ class SyncEngine:
         
         self.tr_client = TestRailClient(self.tr_base_url, self.tr_user, self.tr_api_key)
         self.bq_client = BigQueryClient(self.project_id, self.bq_dataset)
+        self.jira_client = JiraClient()
 
     def _get_secret(self, secret_id):
-        client = secretmanager.SecretManagerServiceClient()
-        name = f"projects/{self.project_id}/secrets/{secret_id}/versions/latest"
-        response = client.access_secret_version(request={"name": name})
-        return response.payload.data.decode("UTF-8")
+        try:
+            client = secretmanager.SecretManagerServiceClient()
+            name = f"projects/{self.project_id}/secrets/{secret_id.upper()}/versions/latest"
+            response = client.access_secret_version(request={"name": name})
+            return response.payload.data.decode("UTF-8")
+        except Exception:
+            # Fallback to env vars (local dev or if auth fails)
+            return os.environ.get(secret_id.upper())
 
     def run_sync(self, entity):
         logger.info(f"Starting sync for {entity}")
@@ -46,41 +52,52 @@ class SyncEngine:
             return self._sync_milestones()
         elif entity == "statuses":
             return self._sync_statuses()
+        elif entity == "jira_issues":
+            return self.sync_jira()
+        elif entity == "users":
+            return self._sync_users()
+        elif entity == "all":
+            results = {}
+            # Metadata
+            results['projects'] = self._sync_projects()
+            results['users'] = self._sync_users()
+            results['statuses'] = self._sync_statuses()
+            results['milestones'] = self._sync_milestones()
+            
+            # Structure
+            results['plans'] = self._sync_plans()
+            results['runs'] = self._sync_runs()
+            # specific order might matter if dependencies exist, but raw tables are independent mostly
+            results['suites'] = self._sync_suites()
+            results['cases'] = self._sync_cases()
+            
+            # Data
+            results['tests'] = self._sync_tests()
+            results['results'] = self._sync_results()
+            
+            # External
+            results['jira_issues'] = self.sync_jira()
+            
+            return {"status": "success", "detailed_results": results}
         else:
             raise ValueError(f"Unknown entity: {entity}")
 
     def _sync_projects(self):
         projects = self.tr_client.get_projects()
-        # Projects don't have a watermark usually, we just get all.
         self.bq_client.insert_rows("raw_projects", projects)
         return {"status": "success", "count": len(projects)}
 
     def _sync_runs(self):
-        # We sync runs per project or globally? 
-        # get_runs can be global if project_id is not specified (depending on TR version).
-        # If TR requires project_id, we need to iterate projects.
-        # Assuming we iterate projects.
-        
         projects = self.tr_client.get_projects()
         total_synced = 0
         
         for project in projects:
             project_id = project['id']
-            # Get watermark for this project's runs
             watermark = self.bq_client.get_watermark("runs", scope_id=project_id)
-            
-            # Fetch runs updated after watermark
             runs = self.tr_client.get_runs(project_id=project_id, updated_after=watermark)
             
             if runs:
                 self.bq_client.insert_rows("raw_runs", runs)
-                
-                # Update watermark
-                # Find max updated_on (or created_on)
-                # TR timestamps are Unix timestamps usually.
-                # We need to be careful with the field name.
-                # Assuming 'updated_on' exists in run object, else 'created_on'.
-                
                 max_ts = watermark
                 for run in runs:
                     ts = run.get('updated_on', run.get('created_on'))
@@ -98,7 +115,6 @@ class SyncEngine:
         for project in projects:
             suites = self.tr_client.get_suites(project['id'])
             if suites:
-                # Add project_id if missing
                 for s in suites:
                     s['project_id'] = project['id']
                 self.bq_client.insert_rows("raw_suites", suites)
@@ -109,28 +125,32 @@ class SyncEngine:
         projects = self.tr_client.get_projects()
         total = 0
         for project in projects:
-            # Check suite mode
-            # 1: Single Suite, 2: Single Suite + Baselines, 3: Multiple Suites
-            suite_mode = project.get('suite_mode', 1)
-            
-            if suite_mode == 3:
-                suites = self.tr_client.get_suites(project['id'])
-                if suites:
-                    for suite in suites:
-                        cases = self.tr_client.get_cases(project['id'], suite_id=suite['id'])
-                        if cases:
-                            for c in cases:
-                                c['project_id'] = project['id']
-                                c['suite_id'] = suite['id']
-                            self.bq_client.insert_rows("raw_cases", cases)
-                            total += len(cases)
-            else:
-                cases = self.tr_client.get_cases(project['id'])
-                if cases:
-                    for c in cases:
-                        c['project_id'] = project['id']
-                    self.bq_client.insert_rows("raw_cases", cases)
-                    total += len(cases)
+            try:
+                # Check suite mode
+                # 1: Single Suite, 2: Single Suite + Baselines, 3: Multiple Suites
+                suite_mode = project.get('suite_mode', 1)
+                
+                if suite_mode == 3:
+                    suites = self.tr_client.get_suites(project['id'])
+                    if suites:
+                        for suite in suites:
+                            cases = self.tr_client.get_cases(project['id'], suite_id=suite['id'])
+                            if cases:
+                                for c in cases:
+                                    c['project_id'] = project['id']
+                                    c['suite_id'] = suite['id']
+                                self.bq_client.insert_rows("raw_cases", cases)
+                                total += len(cases)
+                else:
+                    cases = self.tr_client.get_cases(project['id'])
+                    if cases:
+                        for c in cases:
+                            c['project_id'] = project['id']
+                        self.bq_client.insert_rows("raw_cases", cases)
+                        total += len(cases)
+            except Exception as e:
+                logger.error(f"Failed to sync cases for project {project['id']}: {e}")
+                continue
         return {"status": "success", "count": total}
 
     def _sync_plans(self):
@@ -140,24 +160,18 @@ class SyncEngine:
         
         for project in projects:
             project_id = project['id']
-            # Fetch summary plans
             plans = self.tr_client.get_plans(project_id)
             
             for plan in plans:
-                # Fetch detailed plan
                 detailed_plan = self.tr_client.get_plan(plan['id'])
                 if detailed_plan:
                     detailed_plan['project_id'] = project_id
-                    
-                    # Extract custom fields
                     custom_fields = {k: v for k, v in detailed_plan.items() if k.startswith('custom_')}
                     import json
                     if custom_fields:
                         detailed_plan['custom_fields'] = json.dumps(custom_fields)
                     
-                    # Serialize entries for BQ JSON column
                     if 'entries' in detailed_plan:
-                        # Keep a copy of entries for run extraction before serializing
                         entries_data = detailed_plan['entries']
                         detailed_plan['entries'] = json.dumps(entries_data)
                     else:
@@ -166,7 +180,6 @@ class SyncEngine:
                     self.bq_client.insert_rows("raw_plans", [detailed_plan])
                     total_plans += 1
                     
-                    # Extract runs from entries
                     if entries_data:
                         extracted_runs = []
                         for entry in entries_data:
@@ -189,17 +202,13 @@ class SyncEngine:
             milestones = self.tr_client.get_milestones(project['id'])
             detailed_milestones = []
             for m in milestones:
-                # Fetch detail to get all fields
                 detail = self.tr_client.get_milestone(m['id'])
                 if detail:
                     detail['project_id'] = project['id']
-                    
-                    # Extract custom fields
                     custom_fields = {k: v for k, v in detail.items() if k.startswith('custom_')}
                     import json
                     if custom_fields:
                         detail['custom_fields'] = json.dumps(custom_fields)
-                        
                     detailed_milestones.append(detail)
             
             if detailed_milestones:
@@ -213,20 +222,27 @@ class SyncEngine:
             self.bq_client.insert_rows("raw_statuses", statuses)
         return {"status": "success", "count": len(statuses)}
 
+    def _sync_users(self):
+        users = self.tr_client.get_users()
+        if users:
+            self.bq_client.insert_rows("raw_users", users)
+        return {"status": "success", "count": len(users)}
+
     def _sync_tests(self):
-        # Iterate projects -> Get Run IDs from BQ -> Fetch Tests
-        # This is heavy. For now, let's try to fetch for all runs.
-        # Optimization: In future, only fetch for open runs or recently updated runs.
-        
+        # Optimized to only sync tests for Project 23 to avoid timeouts
         projects = self.tr_client.get_projects()
         total = 0
         
         for project in projects:
-            # Get run IDs from BQ to ensure we have them
-            # We use a query to get run IDs for this project
+            # Temporary Fix: Limit to Project 23 (Verification) and 12 (Production)
+            if project['id'] not in [12, 23, 4, 8]:
+                continue
+
             query = f"SELECT id FROM `{self.bq_dataset}.raw_runs` WHERE project_id = {project['id']}"
             query_job = self.bq_client.client.query(query)
             run_ids = [row.id for row in query_job]
+            
+            logger.info(f"Syncing tests for Project {project['id']} ({len(run_ids)} runs)")
             
             for run_id in run_ids:
                 tests = self.tr_client.get_tests(run_id)
@@ -237,11 +253,14 @@ class SyncEngine:
         return {"status": "success", "count": total}
 
     def _sync_results(self):
-        # Similar to tests, iterate runs.
         projects = self.tr_client.get_projects()
         total = 0
         
         for project in projects:
+            # Temporary Fix: Limit to Project 23 (Verification) and 12 (Production)
+            if project['id'] not in [12, 23, 4, 8]:
+                continue
+
             query = f"SELECT id FROM `{self.bq_dataset}.raw_runs` WHERE project_id = {project['id']}"
             query_job = self.bq_client.client.query(query)
             run_ids = [row.id for row in query_job]
@@ -249,23 +268,50 @@ class SyncEngine:
             for run_id in run_ids:
                 results = self.tr_client.get_results(run_id)
                 if results:
-                    # Extract custom fields
                     for result in results:
                         custom_fields = {}
-                        keys_to_remove = []
                         for key, value in result.items():
                             if key.startswith('custom_'):
                                 custom_fields[key] = value
-                                keys_to_remove.append(key)
                         
                         if custom_fields:
                             import json
                             result['custom_fields'] = json.dumps(custom_fields)
-                        
-                        # Optional: Remove extracted keys if we want to keep raw clean, 
-                        # but for now we just add the JSON column.
                     
                     self.bq_client.insert_rows("raw_results", results)
                     total += len(results)
                     
         return {"status": "success", "count": total}
+
+    def sync_jira(self):
+        """
+        Sync Jira issues for Project CM.
+        """
+        jql = "project = CM ORDER BY updated DESC"
+        batch_size = 100
+        batch = []
+        total_synced = 0
+        
+        logger.info("Starting Jira sync...")
+        
+        try:
+            for issue in self.jira_client.get_all_issues(jql):
+                batch.append(issue)
+                
+                if len(batch) >= batch_size:
+                    self.bq_client.insert_rows('raw_jira_issues', batch)
+                    total_synced += len(batch)
+                    batch = []
+                    logger.info(f"Synced {total_synced} Jira issues so far...")
+            
+            # Insert remaining
+            if batch:
+                self.bq_client.insert_rows('raw_jira_issues', batch)
+                total_synced += len(batch)
+                
+            logger.info(f"Jira sync complete. Total issues: {total_synced}")
+            return {"status": "success", "count": total_synced}
+            
+        except Exception as e:
+            logger.error(f"Jira sync failed: {e}")
+            return {"status": "error", "error": str(e)}

@@ -202,7 +202,7 @@ resource "google_secret_manager_secret_iam_member" "secret_accessor_url" {
 # or we need to build and push the image first. 
 # For Terraform to succeed initially without a built image, we can use the standard hello-world image.
 resource "google_cloud_run_service" "default" {
-  name     = "testrail-kpi-service"
+  name     = "testrail-kpis-dashboard"
   location = var.region
 
   template {
@@ -236,16 +236,16 @@ resource "google_cloud_run_service" "default" {
 }
 
 # Cloud Scheduler
-resource "google_cloud_scheduler_job" "sync_runs" {
-  name             = "sync-testrail-runs"
-  description      = "Sync TestRail Runs every hour"
-  schedule         = "0 * * * *"
+resource "google_cloud_scheduler_job" "sync_all" {
+  name             = "sync-testrail-all"
+  description      = "Sync All TestRail Entities every 4 hours"
+  schedule         = "0 */4 * * *"
   time_zone        = "Etc/UTC"
-  attempt_deadline = "320s"
+  attempt_deadline = "600s"
 
   http_target {
     http_method = "POST"
-    uri         = "${google_cloud_run_service.default.status[0].url}/jobs/sync?entity=runs"
+    uri         = "${google_cloud_run_service.default.status[0].url}/jobs/sync?entity=all"
     
     oidc_token {
       service_account_email = google_service_account.service_runner.email

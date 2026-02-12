@@ -3,27 +3,23 @@
 # Configuration
 PROJECT_ID="testrail-480214"
 REGION="us-central1"
-SERVICE_NAME="testrail-kpi-service"
+SERVICE_NAME="testrail-kpis-dashboard"
 
-# Get Service URL
-SERVICE_URL=$(gcloud run services describe $SERVICE_NAME --region $REGION --project $PROJECT_ID --format 'value(status.url)')
+# Service URL (Hardcoded for reliability)
+SERVICE_URL="https://testrail-kpis-dashboard-789788067290.us-central1.run.app"
 
 function show_help {
     echo "Usage: ./manage.sh [command]"
     echo "Commands:"
-    echo "  sync [entity]   Trigger sync for an entity (runs, projects, plans, suites, cases, tests, results, milestones, statuses, jira_issues)"
+    echo "  sync            Trigger full sync via Dashboard API"
     echo "  status          Check the sync state from BigQuery"
     echo "  logs            Tail the Cloud Run logs"
 }
 
 function trigger_sync {
-    ENTITY=$1
-    if [ -z "$ENTITY" ]; then
-        echo "Error: Entity required. Usage: ./manage.sh sync <entity>"
-        exit 1
-    fi
-    echo "Triggering sync for $ENTITY..."
-    curl -X POST "${SERVICE_URL}/jobs/sync?entity=${ENTITY}"
+    echo "Triggering sync via Dashboard API ($SERVICE_URL/api/sync)..."
+    # The Next.js API route currently triggers the fulll local sync script
+    curl -X POST "${SERVICE_URL}/api/sync?force=true"
     echo -e "\nRequest sent."
 }
 

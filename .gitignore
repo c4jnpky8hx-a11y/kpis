@@ -22,3 +22,6 @@ tfplan
 
 # Helper scripts
 deploy_view.py
+postman/
+.env.jira
+web/tmp/

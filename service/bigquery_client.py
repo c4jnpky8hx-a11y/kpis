@@ -112,7 +112,9 @@ class BigQueryClient:
         errors = self.client.insert_rows_json(table_id, cleaned_rows, ignore_unknown_values=True)
         if errors:
             logger.error(f"Encountered errors while inserting rows: {errors}")
-            raise Exception("BigQuery insert failed")
+            # Print to stdout/stderr as well for immediate visibility in scripts
+            print(f"BQ INSERT ERRORS: {errors}")
+            raise Exception(f"BigQuery insert failed: {errors}")
         
         logger.info(f"Inserted {len(rows)} rows into {table_name}")
 

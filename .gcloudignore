@@ -1,0 +1,30 @@
+
+# Valid directories to include
+!service/
+!sql/
+!web/
+
+# Web specific ignores (re-installed in Docker)
+web/node_modules/
+web/.next/
+web/out/
+
+# Python specific ignores
+**/__pycache__/
+*.pyc
+venv/
+.venv/
+service/venv/
+service/.venv/
+
+# Recursive Depedencies
+**/node_modules/
+**/.next/
+**/.git/
+
+# System
+.DS_Store
+
+# Temporary
+tmp/
+*.log

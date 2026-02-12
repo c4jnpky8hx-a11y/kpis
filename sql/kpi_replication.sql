@@ -39,6 +39,7 @@ SELECT
   r.created_on as created_on_run,
   r.completed_on as completed_on_run,
   r.is_completed as is_completed_run,
+  r.assignedto_id, -- Added for Analyst mapping
   
   -- UAT Specific: Acta de Certificación (Signed)
   -- Placeholder key: custom_acta_de_certificacin (needs verification)
