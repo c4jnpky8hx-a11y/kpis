@@ -33,7 +33,7 @@ class JiraClient:
         payload = {
             "jql": jql,
             "maxResults": max_results,
-            "fields": ["id", "key", "summary", "status", "priority", "created", "updated", "assignee", "reporter", "resolution"]
+            "fields": ["id", "key", "summary", "status", "priority", "created", "updated", "assignee", "reporter", "resolution", "issuetype"]
         }
         
         if next_page_token:
@@ -100,6 +100,7 @@ class JiraClient:
             "summary": fields.get('summary'),
             "status": (fields.get('status') or {}).get('name'),
             "priority": (fields.get('priority') or {}).get('name'),
+            "issue_type": (fields.get('issuetype') or {}).get('name'),
             "created": format_ts(fields.get('created')),
             "updated": format_ts(fields.get('updated')),
             "assignee": (fields.get('assignee') or {}).get('displayName'),

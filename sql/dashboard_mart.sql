@@ -47,7 +47,9 @@ run_defects_jira AS (
   JOIN `testrail_kpis.dedup_tests` t ON r.test_id = t.id
   LEFT JOIN UNNEST(REGEXP_EXTRACT_ALL(r.defects, r'(CM-\d+)')) as defect_key
   JOIN `testrail_kpis.raw_jira_issues` j ON defect_key = j.key
+    AND (j.issue_type = 'Defecto_TestRail' OR j.issue_type IS NULL) -- Only count Defecto_TestRail type; IS NULL for backward compat rows before column was added but the correct filter is = 'Defecto_TestRail'
   WHERE r.defects IS NOT NULL AND r.defects != ''
+    AND j.issue_type = 'Defecto_TestRail'
   GROUP BY 1
 ),
 

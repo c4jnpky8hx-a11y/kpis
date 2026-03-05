@@ -36,4 +36,5 @@ SELECT
 
 FROM `testrail_kpis.raw_jira_issues` j
 LEFT JOIN linked_info li ON j.key = li.extracted_key
+WHERE j.issue_type = 'Defecto_TestRail'
 GROUP BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11;

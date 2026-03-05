@@ -295,7 +295,7 @@ class SyncEngine:
         """
         Sync Jira issues for Project CM.
         """
-        jql = "project = CM ORDER BY updated DESC"
+        jql = "project = CM AND issuetype = Defecto_TestRail ORDER BY updated DESC"
         batch_size = 100
         batch = []
         total_synced = 0
