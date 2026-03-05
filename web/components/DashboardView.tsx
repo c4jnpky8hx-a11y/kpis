@@ -8,6 +8,7 @@ import ProjectSummaryTable from './ProjectSummaryTable';
 import DetailedTable from './DetailedTable';
 import WorkloadChart from './WorkloadChart';
 import ProjectDemandChart from './ProjectDemandChart';
+import UatTimelineChart from './UatTimelineChart';
 import { StatusPieChart, DefectsBarChart, DefectsStatusChart, VelocityAreaChart, AutomationDonutChart } from './Charts';
 import UnlinkedDefectsTable from './UnlinkedDefectsTable';
 import { LayoutGrid, Database, Calendar, Layers, ChevronDown, AlertTriangle } from 'lucide-react';
@@ -21,6 +22,7 @@ export default function DashboardView() {
     const [data, setData] = useState<any[]>([]);
     const [summary, setSummary] = useState<any[]>([]); // New State for Project Summary
     const [jiraData, setJiraData] = useState<any[]>([]); // Jira defect issues
+    const [uatTimelineData, setUatTimelineData] = useState<any[]>([]); // UAT Timeline
     const [insights, setInsights] = useState<any>(null);
     const [loading, setLoading] = useState(false);
     const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
@@ -31,22 +33,25 @@ export default function DashboardView() {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [dataRes, insightsRes, summaryRes, jiraRes] = await Promise.all([
+            const [dataRes, insightsRes, summaryRes, jiraRes, uatRes] = await Promise.all([
                 fetch(`/api/data?type=${activeTab}`),
                 fetch('/api/insights'),
                 fetch('/api/projects/summary'),
-                fetch('/api/data?type=unlinked')
+                fetch('/api/data?type=unlinked'),
+                fetch('/api/data?type=uat_timeline')
             ]);
 
             const json = await dataRes.json();
             const insightsJson = await insightsRes.json();
             const summaryJson = await summaryRes.json();
             const jiraJson = await jiraRes.json();
+            const uatJson = await uatRes.json();
 
             if (json.data) setData(json.data);
             if (insightsJson) setInsights(insightsJson);
             if (summaryJson.data) setSummary(summaryJson.data);
             if (jiraJson.data) setJiraData(jiraJson.data);
+            if (uatJson.data) setUatTimelineData(uatJson.data);
         } catch (error) {
             console.error("Failed to fetch data", error);
         } finally {
@@ -205,6 +210,13 @@ export default function DashboardView() {
                             statusColor="gray"
                         />
                     </div>
+
+                    {/* UAT Verifications Timeline (Spans full width exactly below KPIs) */}
+                    {activeTab === 'mart' && (
+                        <div className="col-span-12">
+                            <UatTimelineChart data={uatTimelineData} />
+                        </div>
+                    )}
 
                     {/* Main Chart Area */}
                     <div className="col-span-12 lg:col-span-8 bg-[#111827] border border-gray-800 rounded-lg p-6 flex flex-col">

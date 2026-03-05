@@ -11,13 +11,14 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get('type') || 'mart';
 
     // Sanitize input to prevent SQL injection (though strict type usage helps)
-    const validTypes = ['mart', 'pruebas', 'workload', 'demand', 'unlinked'];
+    const validTypes = ['mart', 'pruebas', 'workload', 'demand', 'unlinked', 'uat_timeline'];
     const tableMap: Record<string, string> = {
         mart: 'dashboard_mart',
         pruebas: 'dashboard_pruebas',
         workload: 'workload_by_analyst',
         demand: 'project_analyst_demand',
         unlinked: 'jira_defects_summary',
+        uat_timeline: 'uat_timeline_kpi',
     };
     const table = validTypes.includes(type) ? tableMap[type] : 'dashboard_mart';
 
