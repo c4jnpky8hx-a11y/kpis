@@ -272,3 +272,38 @@ export function AutomationDonutChart({ data }: { data: any[] }) {
         </div>
     );
 }
+
+export function DelayBarChart({ data }: ChartProps) {
+    if (!data || data.length === 0) return <div className="text-gray-600 text-xs text-center py-10 font-mono">NO HAY DATOS DISPONIBLES</div>;
+
+    let totalDelayed = 0;
+    let totalOnTime = 0;
+
+    data.forEach(row => {
+        if (row.entrega_desarrollo_tardia > 0) totalDelayed += 1;
+        else if (row.entrega_desarrollo_tardia === 0) totalOnTime += 1;
+    });
+
+    const chartData = [
+        { name: 'A Tiempo', value: totalOnTime, color: '#10B981' },
+        { name: 'Tardía', value: totalDelayed, color: '#F97316' }
+    ].filter(d => d.value > 0);
+
+    return (
+        <div className="h-[200px] w-full relative">
+            <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} margin={{ top: 20, right: 20, left: -20, bottom: 5 }} barSize={50}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1F2937" vertical={false} />
+                    <XAxis dataKey="name" stroke="#4B5563" fontSize={11} tickLine={false} axisLine={false} fontFamily="var(--font-mono)" />
+                    <YAxis stroke="#4B5563" fontSize={10} tickLine={false} axisLine={false} fontFamily="var(--font-mono)" />
+                    <Tooltip content={<CustomTooltip />} cursor={{ fill: '#1F2937', opacity: 0.4 }} />
+                    <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                        {chartData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                    </Bar>
+                </BarChart>
+            </ResponsiveContainer>
+        </div>
+    );
+}

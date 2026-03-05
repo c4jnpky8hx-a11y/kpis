@@ -9,9 +9,10 @@ import DetailedTable from './DetailedTable';
 import WorkloadChart from './WorkloadChart';
 import ProjectDemandChart from './ProjectDemandChart';
 import UatTimelineChart from './UatTimelineChart';
-import { StatusPieChart, DefectsBarChart, DefectsStatusChart, VelocityAreaChart, AutomationDonutChart } from './Charts';
+import CycleDetailsCard from './CycleDetailsCard';
+import { StatusPieChart, DefectsBarChart, DefectsStatusChart, VelocityAreaChart, AutomationDonutChart, DelayBarChart } from './Charts';
 import UnlinkedDefectsTable from './UnlinkedDefectsTable';
-import { LayoutGrid, Database, Calendar, Layers, ChevronDown, AlertTriangle } from 'lucide-react';
+import { LayoutGrid, Database, Calendar, Layers, ChevronDown, AlertTriangle, Clock } from 'lucide-react';
 import { clsx } from 'clsx';
 
 type DashboardType = 'mart' | 'pruebas';
@@ -23,22 +24,25 @@ export default function DashboardView() {
     const [summary, setSummary] = useState<any[]>([]); // New State for Project Summary
     const [jiraData, setJiraData] = useState<any[]>([]); // Jira defect issues
     const [uatTimelineData, setUatTimelineData] = useState<any[]>([]); // UAT Timeline
+    const [runsData, setRunsData] = useState<any[]>([]); // Runs Execution Lifecycle
     const [insights, setInsights] = useState<any>(null);
     const [loading, setLoading] = useState(false);
     const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
+    const [selectedYear, setSelectedYear] = useState<string>('All');
     const [selectedMonth, setSelectedMonth] = useState<string>('All');
     const [selectedProject, setSelectedProject] = useState<string>('All');
 
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [dataRes, insightsRes, summaryRes, jiraRes, uatRes] = await Promise.all([
+            const [dataRes, insightsRes, summaryRes, jiraRes, uatRes, runsRes] = await Promise.all([
                 fetch(`/api/data?type=${activeTab}`),
                 fetch('/api/insights'),
                 fetch('/api/projects/summary'),
                 fetch('/api/data?type=unlinked'),
-                fetch('/api/data?type=uat_timeline')
+                fetch('/api/data?type=uat_timeline'),
+                fetch(`/api/data?type=runs`)
             ]);
 
             const json = await dataRes.json();
@@ -46,12 +50,14 @@ export default function DashboardView() {
             const summaryJson = await summaryRes.json();
             const jiraJson = await jiraRes.json();
             const uatJson = await uatRes.json();
+            const runsJson = await runsRes.json();
 
             if (json.data) setData(json.data);
             if (insightsJson) setInsights(insightsJson);
             if (summaryJson.data) setSummary(summaryJson.data);
             if (jiraJson.data) setJiraData(jiraJson.data);
             if (uatJson.data) setUatTimelineData(uatJson.data);
+            if (runsJson.data) setRunsData(runsJson.data);
         } catch (error) {
             console.error("Failed to fetch data", error);
         } finally {
@@ -64,6 +70,14 @@ export default function DashboardView() {
         setMounted(true);
         fetchData();
     }, [activeTab]);
+
+    const years = useMemo(() => {
+        const uniqueYears = new Set<string>();
+        data.forEach(d => {
+            if (d.month_key) uniqueYears.add(d.month_key.split('-')[0]);
+        });
+        return Array.from(uniqueYears).sort().reverse();
+    }, [data]);
 
     const months = useMemo(() => Array.from(new Set(data.map(d => d.month_key))).filter(Boolean).sort(), [data]);
     const projects = useMemo(() => {
@@ -80,11 +94,21 @@ export default function DashboardView() {
 
     const filteredData = useMemo(() => {
         return data.filter(d => {
+            if (selectedYear !== 'All' && d.month_key && !d.month_key.startsWith(selectedYear)) return false;
             if (selectedMonth !== 'All' && d.month_key !== selectedMonth) return false;
             if (selectedProject !== 'All' && String(d.project_id) !== selectedProject) return false;
             return true;
         });
-    }, [data, selectedMonth, selectedProject]);
+    }, [data, selectedYear, selectedMonth, selectedProject]);
+
+    const filteredRuns = useMemo(() => {
+        return runsData.filter(d => {
+            if (selectedYear !== 'All' && d.month_key && !d.month_key.startsWith(selectedYear)) return false;
+            if (selectedMonth !== 'All' && d.month_key !== selectedMonth) return false;
+            if (selectedProject !== 'All' && String(d.project_id) !== selectedProject) return false;
+            return true;
+        });
+    }, [runsData, selectedYear, selectedMonth, selectedProject]);
 
     const kpis = useMemo(() => {
         if (!filteredData.length) return null;
@@ -143,14 +167,30 @@ export default function DashboardView() {
             {/* Control Bar */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
                 <div className="md:col-span-8 flex flex-wrap gap-4">
-                    <div className="bg-[#111827] border border-gray-800 rounded px-3 py-2 flex items-center gap-3 min-w-[200px]">
+                    <div className="bg-[#111827] border border-gray-800 rounded px-3 py-2 flex items-center gap-3 min-w-[150px]">
                         <Calendar size={14} className="text-gray-500" />
+                        <select
+                            className="bg-transparent text-sm text-gray-200 outline-none w-full appearance-none font-mono"
+                            value={selectedYear}
+                            onChange={e => {
+                                setSelectedYear(e.target.value);
+                                setSelectedMonth('All'); // Reset month
+                            }}
+                        >
+                            <option value="All">Todos los Años</option>
+                            {years.map(y => <option key={y} value={y}>{y}</option>)}
+                        </select>
+                        <ChevronDown size={14} className="text-gray-600" />
+                    </div>
+                    <div className="bg-[#111827] border border-gray-800 rounded px-3 py-2 flex items-center gap-3 min-w-[200px]">
+                        <Clock size={14} className="text-gray-500" />
                         <select
                             className="bg-transparent text-sm text-gray-200 outline-none w-full appearance-none font-mono"
                             value={selectedMonth}
                             onChange={e => setSelectedMonth(e.target.value)}
                         >
                             <option value="All">Todos los Meses</option>
+                            {months.filter(m => selectedYear === 'All' || m.startsWith(selectedYear)).map(m => <option key={m} value={m}>{m}</option>)}
                             {months.map(m => <option key={m} value={m}>{m}</option>)}
                         </select>
                         <ChevronDown size={14} className="text-gray-600" />
@@ -306,6 +346,15 @@ export default function DashboardView() {
                             </div>
                         </div>
 
+                        {/* Delay Analysis */}
+                        <div className="bg-[#111827] border border-gray-800 rounded-lg p-6">
+                            <h3 className="text-xs font-mono uppercase text-gray-500 mb-4 pb-2 flex items-center gap-2">
+                                <Clock className="w-4 h-4 text-orange-500" />
+                                Cumplimiento Entrega (Hito)
+                            </h3>
+                            <DelayBarChart data={filteredData} />
+                        </div>
+
                         {/* Defect Analysis: Severity & Status */}
                         <div className="bg-[#111827] border border-gray-800 rounded-lg p-6 flex flex-col gap-6">
                             <div>
@@ -399,6 +448,13 @@ export default function DashboardView() {
                     <div className="col-span-12">
                         <SyncControl />
                     </div>
+
+                    {/* Cycle Details Card */}
+                    {activeTab === 'mart' && (
+                        <div className="col-span-12">
+                            <CycleDetailsCard data={filteredRuns} />
+                        </div>
+                    )}
 
                     {/* Detailed Data Table */}
                     <div className="col-span-12">

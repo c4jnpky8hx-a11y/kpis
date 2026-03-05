@@ -67,6 +67,15 @@ run_stats AS (
     COUNTIF(t.status_id = 3) as untested_count,
     COUNT(t.id) as total_tests,
     
+    -- Run-Level Execution Status (Failed > Blocked > In Prog > Passed)
+    CASE 
+      WHEN COUNTIF(t.status_id IN (4, 5)) > 0 THEN 'Failed'
+      WHEN COUNTIF(t.status_id = 2) > 0 THEN 'Blocked'
+      WHEN COUNT(t.id) > 0 AND COUNTIF(t.status_id = 1) = COUNT(t.id) THEN 'Passed'
+      WHEN COUNT(t.id) > 0 THEN 'In Progress'
+      ELSE 'Untested'
+    END as run_status,
+    
     -- Defect Counts (TestRail)
     SUM(COALESCE(rdp.results_with_defects, 0)) as defects_count,
     SUM(COALESCE(rdp.acta_count, 0)) as total_acta_count,
@@ -149,6 +158,13 @@ plan_aggs AS (
     SUM(rs.defects_count) as total_defects,
     SUM(rs.iterations_count) as total_iterations,
     
+    -- Run-level aggregates
+    COUNTIF(rs.run_status = 'Failed') as runs_failed,
+    COUNTIF(rs.run_status = 'Blocked') as runs_blocked,
+    COUNTIF(rs.run_status = 'Passed') as runs_passed,
+    COUNTIF(rs.run_status = 'In Progress') as runs_in_progress,
+    COUNTIF(rs.run_status = 'Untested') as runs_untested,
+    
     -- Jira Aggregates
     SUM(rs.jira_defects_count) as total_jira_defects,
     SUM(rs.jira_defects_closed) as total_jira_closed,
@@ -180,8 +196,11 @@ plan_aggs AS (
     SUM(r.on_time_from_qa) as on_time_from_qa_count,
     COUNT(r.run_id) as total_runs,
     
-    -- Deviation
+    -- Deviation & Delay
     AVG(r.desviacion_inicio) as avg_desviacion_inicio,
+    MAX(r.eff_milestone_start_on) as eff_milestone_start_on,
+    MAX(r.dias_retraso_desarrollo) as dias_retraso_desarrollo,
+    MAX(r.entrega_desarrollo_tardia) as entrega_desarrollo_tardia,
     
     -- Plan Completion Status
     MAX(COALESCE(p.is_completed, r.is_completed_run)) as plan_is_completed,
@@ -206,13 +225,13 @@ plan_aggs AS (
   
   -- FILTER: 
   -- Include Project 12 (UAT - Repositorio UAT)
-  -- Include Project 8 (Automation)
+  -- Include Project 21 (Automatizaciones)
   -- Include All other Active Projects EXCEPT exclusion list AND Closed Projects
   WHERE 
     r.project_id = 12 
-    OR r.project_id = 8
+    OR r.project_id = 21
     OR (
-        r.project_id NOT IN (1, 3, 7, 8, 9, 12, 17, 18, 19, 21, 23) 
+        r.project_id NOT IN (1, 3, 7, 9, 12, 17, 18, 19, 21, 23) 
         AND proj.is_completed = FALSE 
        )
   GROUP BY 1, 2, 3, 4, 5, 6
@@ -228,12 +247,12 @@ SELECT
   -- 1. Iniciativas Certificadas / En Proceso (Excluding UAT - Project 12)
   CASE 
     WHEN project_id = 12 THEN NULL
-    WHEN plan_is_completed THEN 'Certificada'
+    WHEN plan_is_completed OR (total_tests > 0 AND total_passed = total_tests) THEN 'Certificada'
     ELSE 'En Proceso'
   END as Estado_Iniciativa,
   
-  IF(project_id != 12 AND plan_is_completed, 1, 0) as is_certified,
-  IF(project_id != 12 AND NOT plan_is_completed, 1, 0) as is_in_process,
+  IF(project_id != 12 AND (plan_is_completed OR (total_tests > 0 AND total_passed = total_tests)), 1, 0) as is_certified,
+  IF(project_id != 12 AND NOT (plan_is_completed OR (total_tests > 0 AND total_passed = total_tests)), 1, 0) as is_in_process,
   
   -- 2. UAT Metrics (Project 4 Only)
   -- Soluciones Devueltas
@@ -255,49 +274,58 @@ SELECT
   -- UAT Indicator (Project 12)
   IF(project_id = 12, total_passed, 0) as Soluciones_Aceptadas_General,
   
-  -- 4. Entrega a Tiempo & Desviacion (For General QA - Exclude UAT & Automation for Aggregates if needed, or keep for all)
-  -- Keeping for "General" typically implies excluding UAT/Auto, but keeping calculation valid for row-level
-  IF(project_id NOT IN (12, 8), on_time_to_qa_count, 0) as on_time_to_qa_count,
-  IF(project_id NOT IN (12, 8), on_time_from_qa_count, 0) as on_time_from_qa_count,
-  IF(project_id NOT IN (12, 8), total_runs, 0) as total_runs,
-  SAFE_DIVIDE(IF(project_id NOT IN (12, 8), on_time_to_qa_count, 0), IF(project_id NOT IN (12, 8), total_runs, 0)) as on_time_to_qa_rate,
-  SAFE_DIVIDE(IF(project_id NOT IN (12, 8), on_time_from_qa_count, 0), IF(project_id NOT IN (12, 8), total_runs, 0)) as on_time_from_qa_rate,
-  IF(project_id NOT IN (12, 8), avg_desviacion_inicio, NULL) as avg_desviacion_inicio,
+  -- 4. Entrega a Tiempo & Desviacion (For General QA - Exclude UAT & Automation)
+  IF(project_id NOT IN (12, 21), on_time_to_qa_count, 0) as on_time_to_qa_count,
+  IF(project_id NOT IN (12, 21), on_time_from_qa_count, 0) as on_time_from_qa_count,
+  IF(project_id NOT IN (12, 21), total_runs, 0) as total_runs,
+  SAFE_DIVIDE(IF(project_id NOT IN (12, 21), on_time_to_qa_count, 0), IF(project_id NOT IN (12, 21), total_runs, 0)) as on_time_to_qa_rate,
+  SAFE_DIVIDE(IF(project_id NOT IN (12, 21), on_time_from_qa_count, 0), IF(project_id NOT IN (12, 21), total_runs, 0)) as on_time_from_qa_rate,
+  IF(project_id NOT IN (12, 21), avg_desviacion_inicio, NULL) as avg_desviacion_inicio,
   
   -- 5. Defectos por Iniciativa & Prioridad (General QA)
-  -- REPLACED: active_defects_proxy with real Jira Metrics
-  IF(project_id NOT IN (12, 8), total_jira_defects, 0) as Total_Defectos,
-  IF(project_id NOT IN (12, 8), total_jira_open, 0) as Defectos_Activos,
-  IF(project_id NOT IN (12, 8), total_jira_closed, 0) as Defectos_Cerrados,
+  IF(project_id NOT IN (12, 21), total_jira_defects, 0) as Total_Defectos,
+  IF(project_id NOT IN (12, 21), total_jira_open, 0) as Defectos_Activos,
+  IF(project_id NOT IN (12, 21), total_jira_closed, 0) as Defectos_Cerrados,
   
   -- Jira Severity
-  IF(project_id NOT IN (12, 8), total_severity_critical, 0) as total_defects_critical,
-  IF(project_id NOT IN (12, 8), total_severity_high, 0) as total_defects_high,
-  IF(project_id NOT IN (12, 8), total_severity_medium, 0) as total_defects_medium,
-  IF(project_id NOT IN (12, 8), total_severity_low, 0) as total_defects_low,
+  IF(project_id NOT IN (12, 21), total_severity_critical, 0) as total_defects_critical,
+  IF(project_id NOT IN (12, 21), total_severity_high, 0) as total_defects_high,
+  IF(project_id NOT IN (12, 21), total_severity_medium, 0) as total_defects_medium,
+  IF(project_id NOT IN (12, 21), total_severity_low, 0) as total_defects_low,
   
   -- Jira Status Breakdown
-  IF(project_id NOT IN (12, 8), total_status_ready, 0) as total_status_ready,
-  IF(project_id NOT IN (12, 8), total_status_in_progress, 0) as total_status_in_progress,
-  IF(project_id NOT IN (12, 8), total_status_open, 0) as total_status_open,
+  IF(project_id NOT IN (12, 21), total_status_ready, 0) as total_status_ready,
+  IF(project_id NOT IN (12, 21), total_status_in_progress, 0) as total_status_in_progress,
+  IF(project_id NOT IN (12, 21), total_status_open, 0) as total_status_open,
   
   -- New Jira Metric
-  IF(project_id NOT IN (12, 8), avg_jira_defect_age, NULL) as Promedio_Dias_Defecto,
+  IF(project_id NOT IN (12, 21), avg_jira_defect_age, NULL) as Promedio_Dias_Defecto,
   
-  -- Chart Metrics
-  IF(project_id NOT IN (12, 8), total_returned_cases, 0) as total_returned_cases,
-  IF(project_id NOT IN (12, 8), total_in_process, 0) as total_in_process,
-  IF(project_id NOT IN (12, 8), total_blocked, 0) as total_blocked,
-  IF(project_id NOT IN (12, 8), total_untested, 0) as total_untested,
+  -- Chart Metrics (Test-Level Legacy)
+  IF(project_id NOT IN (12, 21), total_returned_cases, 0) as total_returned_cases,
+  IF(project_id NOT IN (12, 21), total_in_process, 0) as total_in_process,
+  IF(project_id NOT IN (12, 21), total_blocked, 0) as total_blocked,
+  IF(project_id NOT IN (12, 21), total_untested, 0) as total_untested,
 
-  -- Automation Specifics (Pass through all metrics, filtering handled in Looker Studio by Project ID = 8)
-  IF(project_id = 8, total_passed, 0) as automation_passed,
-  IF(project_id = 8, total_tests, 0) as automation_total,
+  -- Chart Metrics (Run-Level New)
+  IF(project_id NOT IN (12, 21), runs_failed, 0) as runs_failed,
+  IF(project_id NOT IN (12, 21), runs_blocked, 0) as runs_blocked,
+  IF(project_id NOT IN (12, 21), runs_passed, 0) as runs_passed,
+  IF(project_id NOT IN (12, 21), runs_in_progress, 0) as runs_in_progress,
+  IF(project_id NOT IN (12, 21), runs_untested, 0) as runs_untested,
+
+  -- Delayed Delivery (Entrega Desarrollo Tardia)
+  IF(project_id NOT IN (12, 21), dias_retraso_desarrollo, NULL) as dias_retraso_desarrollo,
+  IF(project_id NOT IN (12, 21), entrega_desarrollo_tardia, 0) as entrega_desarrollo_tardia,
+
+  -- Automation Specifics (Project 21 = Automatizaciones)
+  IF(project_id = 21, total_passed, 0) as automation_passed,
+  IF(project_id = 21, total_tests, 0) as automation_total,
 
   -- Raw Metrics for Downstream Views (Project Summary)
   total_tests,
   total_passed,
-  IF(project_id NOT IN (12, 8), total_jira_defects, 0) as total_defects_raw,
+  IF(project_id NOT IN (12, 21), total_jira_defects, 0) as total_defects_raw,
   active_defects_proxy,
   analysts
 

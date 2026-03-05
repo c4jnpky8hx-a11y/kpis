@@ -125,6 +125,39 @@ SELECT
     DAY
   ) as desviacion_inicio,
 
+  -- Milestone Start Date for Delay Metrics
+  SAFE.PARSE_TIMESTAMP('%Y-%m-%d', COALESCE(
+      JSON_VALUE(m.custom_fields, '$.custom_fecha_de_inicio'),
+      JSON_VALUE(m.custom_fields, '$.custom_fechainicio')
+  )) as eff_milestone_start_on,
+
+  -- Delivery Delay Metrics (Plan Start vs Milestone Start)
+  DATE_DIFF(
+      COALESCE(
+        SAFE.PARSE_TIMESTAMP('%Y-%m-%d', JSON_VALUE(p.custom_fields, '$.custom_fecha_de_inicio')),
+        SAFE.PARSE_TIMESTAMP('%Y-%m-%d', JSON_VALUE(p.custom_fields, '$.custom_fechainicio')),
+        p.created_on 
+      ),
+      SAFE.PARSE_TIMESTAMP('%Y-%m-%d', COALESCE(
+          JSON_VALUE(m.custom_fields, '$.custom_fecha_de_inicio'),
+          JSON_VALUE(m.custom_fields, '$.custom_fechainicio')
+      )),
+      DAY
+  ) as dias_retraso_desarrollo,
+  
+  IF(DATE_DIFF(
+      COALESCE(
+        SAFE.PARSE_TIMESTAMP('%Y-%m-%d', JSON_VALUE(p.custom_fields, '$.custom_fecha_de_inicio')),
+        SAFE.PARSE_TIMESTAMP('%Y-%m-%d', JSON_VALUE(p.custom_fields, '$.custom_fechainicio')),
+        p.created_on 
+      ),
+      SAFE.PARSE_TIMESTAMP('%Y-%m-%d', COALESCE(
+          JSON_VALUE(m.custom_fields, '$.custom_fecha_de_inicio'),
+          JSON_VALUE(m.custom_fields, '$.custom_fechainicio')
+      )),
+      DAY
+  ) > 0, 1, 0) as entrega_desarrollo_tardia,
+
   FORMAT_TIMESTAMP('%Y-%m', COALESCE(r.created_on, r.completed_on)) as month_key
 
 FROM `testrail_kpis.dedup_runs` r

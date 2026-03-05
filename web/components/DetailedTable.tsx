@@ -35,6 +35,7 @@ export default function DetailedTable({ data, type }: DetailedTableProps) {
                             <th className="px-6 py-3 font-medium text-right">Total Tests</th>
                             <th className="px-6 py-3 font-medium text-right text-green-500">Pasados</th>
                             <th className="px-6 py-3 font-medium text-right text-rose-500">Defectos</th>
+                            <th className="px-6 py-3 font-medium text-center text-orange-400">Retraso</th>
                             <th className="px-6 py-3 font-medium">Analistas</th>
                         </tr>
                     </thead>
@@ -82,6 +83,16 @@ export default function DetailedTable({ data, type }: DetailedTableProps) {
                                         </span>
                                     ) : (
                                         <span className="text-gray-600">-</span>
+                                    )}
+                                </td>
+                                <td className="px-6 py-3 text-sm text-center font-mono">
+                                    {row.entrega_desarrollo_tardia === 1 && row.dias_retraso_desarrollo > 0 ? (
+                                        <span className="inline-flex items-center gap-1 text-orange-400 bg-orange-400/10 px-2 py-0.5 rounded border border-orange-400/20" title="Entrega de Desarrollo Tardía">
+                                            <Clock className="w-3 h-3" />
+                                            {row.dias_retraso_desarrollo}d
+                                        </span>
+                                    ) : (
+                                        <span className="text-emerald-500/50 text-[10px]">A Tiempo</span>
                                     )}
                                 </td>
                                 <td className="px-6 py-3 text-xs text-gray-400 max-w-[250px]">

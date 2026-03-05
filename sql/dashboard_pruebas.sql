@@ -39,6 +39,15 @@ run_stats AS (
     COUNTIF(t.status_id = 3) as untested_count,
     COUNT(t.id) as total_tests,
     
+    -- Run-Level Execution Status (Failed > Blocked > In Prog > Passed)
+    CASE 
+      WHEN COUNTIF(t.status_id IN (4, 5)) > 0 THEN 'Failed'
+      WHEN COUNTIF(t.status_id = 2) > 0 THEN 'Blocked'
+      WHEN COUNT(t.id) > 0 AND COUNTIF(t.status_id = 1) = COUNT(t.id) THEN 'Passed'
+      WHEN COUNT(t.id) > 0 THEN 'In Progress'
+      ELSE 'Untested'
+    END as run_status,
+    
     -- Defect Counts (Joined)
     SUM(COALESCE(rdp.results_with_defects, 0)) as defects_count,
     SUM(COALESCE(rdp.acta_count, 0)) as total_acta_count,
@@ -109,6 +118,13 @@ plan_aggs AS (
     SUM(rs.defects_count) as total_defects,
     SUM(rs.iterations_count) as total_iterations,
     
+    -- Run-level aggregates
+    COUNTIF(rs.run_status = 'Failed') as runs_failed,
+    COUNTIF(rs.run_status = 'Blocked') as runs_blocked,
+    COUNTIF(rs.run_status = 'Passed') as runs_passed,
+    COUNTIF(rs.run_status = 'In Progress') as runs_in_progress,
+    COUNTIF(rs.run_status = 'Untested') as runs_untested,
+    
     -- Priority Defects
     SUM(rs.defects_critical) as total_defects_critical,
     SUM(rs.defects_high) as total_defects_high,
@@ -129,8 +145,11 @@ plan_aggs AS (
     SUM(r.on_time_from_qa) as on_time_from_qa_count,
     COUNT(r.run_id) as total_runs,
     
-    -- Deviation
+    -- Deviation & Delay
     AVG(r.desviacion_inicio) as avg_desviacion_inicio,
+    MAX(r.eff_milestone_start_on) as eff_milestone_start_on,
+    MAX(r.dias_retraso_desarrollo) as dias_retraso_desarrollo,
+    MAX(r.entrega_desarrollo_tardia) as entrega_desarrollo_tardia,
     
     -- Plan Completion Status
     MAX(COALESCE(p.is_completed, r.is_completed_run)) as plan_is_completed,
@@ -161,12 +180,12 @@ SELECT
   -- Strict Logic: Only Project 17 shows status. Project 12 is NULL/0.
   CASE 
     WHEN project_id != 17 THEN NULL
-    WHEN plan_is_completed THEN 'Certificada'
+    WHEN plan_is_completed OR (total_tests > 0 AND total_passed = total_tests) THEN 'Certificada'
     ELSE 'En Proceso'
   END as Estado_Iniciativa,
   
-  IF(project_id = 17 AND plan_is_completed, 1, 0) as is_certified,
-  IF(project_id = 17 AND NOT plan_is_completed, 1, 0) as is_in_process,
+  IF(project_id = 17 AND (plan_is_completed OR (total_tests > 0 AND total_passed = total_tests)), 1, 0) as is_certified,
+  IF(project_id = 17 AND NOT (plan_is_completed OR (total_tests > 0 AND total_passed = total_tests)), 1, 0) as is_in_process,
   
   -- 2. UAT Metrics (Project 12 - Repositorio UAT)
   -- Soluciones Devueltas: Sum of Runs flagged as Returned
@@ -203,11 +222,22 @@ SELECT
   IF(project_id = 17, total_defects_medium, 0) as total_defects_medium,
   IF(project_id = 17, total_defects_low, 0) as total_defects_low,
   
-  -- Chart Metrics
+  -- Chart Metrics (Test-Level Legacy)
   IF(project_id = 17, total_returned_cases, 0) as total_returned_cases,
   IF(project_id = 17, total_in_process, 0) as total_in_process,
   IF(project_id = 17, total_blocked, 0) as total_blocked,
   IF(project_id = 17, total_untested, 0) as total_untested,
+
+  -- Chart Metrics (Run-Level New)
+  IF(project_id = 17, runs_failed, 0) as runs_failed,
+  IF(project_id = 17, runs_blocked, 0) as runs_blocked,
+  IF(project_id = 17, runs_passed, 0) as runs_passed,
+  IF(project_id = 17, runs_in_progress, 0) as runs_in_progress,
+  IF(project_id = 17, runs_untested, 0) as runs_untested,
+
+  -- Delayed Delivery (Entrega Desarrollo Tardia)
+  IF(project_id = 17, dias_retraso_desarrollo, NULL) as dias_retraso_desarrollo,
+  IF(project_id = 17, entrega_desarrollo_tardia, 0) as entrega_desarrollo_tardia,
   
   -- Raw Metrics (Parity with Mart)
   total_tests,
