@@ -245,10 +245,14 @@ class SyncEngine:
             logger.info(f"Syncing tests for Project {project['id']} ({len(run_ids)} runs)")
             
             for run_id in run_ids:
-                tests = self.tr_client.get_tests(run_id)
-                if tests:
-                    self.bq_client.insert_rows("raw_tests", tests)
-                    total += len(tests)
+                try:
+                    tests = self.tr_client.get_tests(run_id)
+                    if tests:
+                        self.bq_client.insert_rows("raw_tests", tests)
+                        total += len(tests)
+                except Exception as e:
+                    logger.warning(f"Failed to sync tests for run {run_id}: {e}")
+                    continue
         
         return {"status": "success", "count": total}
 
@@ -266,20 +270,24 @@ class SyncEngine:
             run_ids = [row.id for row in query_job]
             
             for run_id in run_ids:
-                results = self.tr_client.get_results(run_id)
-                if results:
-                    for result in results:
-                        custom_fields = {}
-                        for key, value in result.items():
-                            if key.startswith('custom_'):
-                                custom_fields[key] = value
+                try:
+                    results = self.tr_client.get_results(run_id)
+                    if results:
+                        for result in results:
+                            custom_fields = {}
+                            for key, value in result.items():
+                                if key.startswith('custom_'):
+                                    custom_fields[key] = value
+                            
+                            if custom_fields:
+                                import json
+                                result['custom_fields'] = json.dumps(custom_fields)
                         
-                        if custom_fields:
-                            import json
-                            result['custom_fields'] = json.dumps(custom_fields)
-                    
-                    self.bq_client.insert_rows("raw_results", results)
-                    total += len(results)
+                        self.bq_client.insert_rows("raw_results", results)
+                        total += len(results)
+                except Exception as e:
+                    logger.warning(f"Failed to sync results for run {run_id}: {e}")
+                    continue
                     
         return {"status": "success", "count": total}
 
