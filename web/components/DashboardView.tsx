@@ -262,35 +262,33 @@ export default function DashboardView() {
                     <div className="col-span-12 lg:col-span-8 bg-[#111827] border border-gray-800 rounded-lg p-6 flex flex-col">
                         <div className="flex items-center justify-between mb-6">
                             <h3 className="text-sm font-medium text-white tracking-wide">DESGLOSE DE EJECUCION DE PRUEBAS</h3>
-                            <span className="text-xs text-gray-500 font-mono text-right">EXITOSOS VS FALLIDOS</span>
+                            <span className="text-xs text-gray-500 font-mono text-right">POR CICLO DE PRUEBAS</span>
                         </div>
                         <StatusPieChart data={filteredData} />
 
-                        {/* Status Detail Breakdown */}
+                        {/* Cycle Status Detail Breakdown */}
                         {(() => {
                             const reduceSum = (key: string) => filteredData.reduce((acc: number, row: Record<string, unknown>) => acc + (Number(row[key]) || 0), 0);
-                            const totalTests = reduceSum('total_tests');
-                            const passed = reduceSum('total_passed');
-                            const returned = reduceSum('total_returned_cases');
-                            const blocked = reduceSum('total_blocked');
-                            const untested = reduceSum('total_untested');
-                            const inProcess = reduceSum('total_in_process');
-                            const failed = Math.max(0, totalTests - passed - returned - blocked - untested - inProcess);
-                            const totalAll = totalTests;
+                            // Cycle-level counts — each cycle classified by strict priority rule
+                            const certified = reduceSum('runs_passed');       // all cases passed
+                            const failed = reduceSum('runs_failed');       // any case failed/retest → whole cycle = Fallado
+                            const blocked = reduceSum('runs_blocked');      // any blocked (no fail) → whole cycle = Bloqueado
+                            const inProgress = reduceSum('runs_in_progress');  // partial pass, no fail/block
+                            const untested = reduceSum('runs_untested');     // no cases run yet
+                            const totalAll = certified + failed + blocked + inProgress + untested;
                             const pct = (v: number) => totalAll > 0 ? ((v / totalAll) * 100).toFixed(1) : '0.0';
 
                             const items = [
-                                { label: 'Exitosos', value: passed, color: '#10B981', icon: '✓' },
-                                { label: 'Fallidos', value: failed, color: '#F43F5E', icon: '✗' },
-                                { label: 'Devueltos', value: returned, color: '#8B5CF6', icon: '↻' },
+                                { label: 'Certificados', value: certified, color: '#10B981', icon: '✓' },
+                                { label: 'Fallados', value: failed, color: '#F43F5E', icon: '✗' },
                                 { label: 'Bloqueados', value: blocked, color: '#F59E0B', icon: '⊘' },
-                                { label: 'En Proceso', value: inProcess, color: '#3B82F6', icon: '◉' },
+                                { label: 'En Progreso', value: inProgress, color: '#8B5CF6', icon: '◉' },
                                 { label: 'Sin Probar', value: untested, color: '#374151', icon: '○' },
                             ];
 
                             return (
                                 <div className="mt-6 border-t border-gray-800 pt-6">
-                                    <h4 className="text-xs font-mono uppercase text-gray-500 mb-4">Detalle por Estado</h4>
+                                    <h4 className="text-xs font-mono uppercase text-gray-500 mb-4">Detalle por Ciclo</h4>
                                     <div className="grid grid-cols-2 gap-x-8 gap-y-4">
                                         {items.map(item => (
                                             <div key={item.label} className="group">

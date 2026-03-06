@@ -34,19 +34,20 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 export function StatusPieChart({ data }: ChartProps) {
     if (!data || data.length === 0) return <div className="text-gray-600 text-xs text-center py-10 font-mono">NO HAY DATOS DISPONIBLES</div>;
 
+    // Use cycle-level run counts — strict priority: Failed > Blocked > In Progress > Certificado
     const sums = data.reduce((acc, row) => ({
-        Passed: acc.Passed + (row.total_passed || 0),
-        Failed: acc.Failed + (row.failed_count || 0),
-        Blocked: acc.Blocked + (row.total_blocked || 0),
-        Untested: acc.Untested + (row.total_untested || 0),
-        Retest: acc.Retest + (row.total_returned_cases || 0)
-    }), { Passed: 0, Failed: 0, Blocked: 0, Untested: 0, Retest: 0 });
+        Passed: acc.Passed + (Number(row.runs_passed) || 0),
+        Failed: acc.Failed + (Number(row.runs_failed) || 0),
+        Blocked: acc.Blocked + (Number(row.runs_blocked) || 0),
+        InProgress: acc.InProgress + (Number(row.runs_in_progress) || 0),
+        Untested: acc.Untested + (Number(row.runs_untested) || 0),
+    }), { Passed: 0, Failed: 0, Blocked: 0, InProgress: 0, Untested: 0 });
 
     const chartData = [
-        { name: 'Exitosos', value: sums.Passed, color: COLORS.passed },
-        { name: 'Fallidos', value: sums.Failed, color: COLORS.failed },
+        { name: 'Certificados', value: sums.Passed, color: COLORS.passed },
+        { name: 'Fallados', value: sums.Failed, color: COLORS.failed },
         { name: 'Bloqueados', value: sums.Blocked, color: COLORS.blocked },
-        { name: 'Devueltos', value: sums.Retest, color: COLORS.retest },
+        { name: 'En Progreso', value: sums.InProgress, color: COLORS.retest },
         { name: 'Sin Probar', value: sums.Untested, color: COLORS.untested },
     ].filter(d => d.value > 0);
 
@@ -83,11 +84,12 @@ export function StatusPieChart({ data }: ChartProps) {
             {/* Center Label */}
             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none pr-28">
                 <div className="text-3xl font-mono font-bold text-white">{total}</div>
-                <div className="text-[10px] uppercase text-gray-500 tracking-widest">Total Pruebas</div>
+                <div className="text-[10px] uppercase text-gray-500 tracking-widest">Total Ciclos</div>
             </div>
         </div>
     );
 }
+
 
 export function DefectsBarChart({ data }: ChartProps) {
     if (!data || data.length === 0) return <div className="text-gray-600 text-xs text-center py-10 font-mono">NO HAY DATOS DISPONIBLES</div>;
