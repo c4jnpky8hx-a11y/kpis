@@ -34,8 +34,7 @@ export async function GET(request: NextRequest) {
             GROUP BY 1
         `;
 
-        // 3. Defect Aging (Top 5 Oldest Open Critical/High Bugs)
-        // Filtering by status NOT Done/Closed.
+        // 3. Defect Aging (Top 5 Oldest Open Defecto_TestRail Bugs)
         const agingQuery = `
             SELECT 
                 key, 
@@ -44,7 +43,8 @@ export async function GET(request: NextRequest) {
                 FORMAT_TIMESTAMP('%Y-%m-%d', created) as created_date,
                 DATE_DIFF(CURRENT_DATE(), DATE(created), DAY) as days_open
             FROM \`testrail_kpis.raw_jira_issues\`
-            WHERE status NOT IN ('Done', 'Closed', 'Resolved')
+            WHERE status NOT IN ('Done', 'Closed', 'Resolved', 'Terminado', 'Cerrado', 'Cancelado', 'Mitigado')
+              AND (issue_type = 'Defecto_TestRail' OR issue_type IS NULL)
             ORDER BY created ASC
             LIMIT 5
         `;

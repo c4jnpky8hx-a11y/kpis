@@ -1,11 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { AlertTriangle, CheckCircle, ExternalLink, XCircle } from 'lucide-react';
+import { CheckCircle, ExternalLink, XCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+
+const CLOSED_STATUSES = ['Terminado', 'Cerrado', 'Cancelado', 'Mitigado', 'Done', 'Closed', 'Resolved'];
+const PAGE_SIZE = 15;
 
 export default function UnlinkedDefectsTable() {
     const [data, setData] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [page, setPage] = useState(0);
 
     useEffect(() => {
         fetch('/api/data?type=unlinked')
@@ -22,7 +26,12 @@ export default function UnlinkedDefectsTable() {
 
     if (loading) return <div className="text-gray-500 text-xs font-mono animate-pulse">CARGANDO DEFECTOS...</div>;
 
-    const unlinkedCount = data.filter(d => !d.is_linked).length;
+    // Only show active (non-closed) defects — "Terminado" = closed in Jira ES
+    const activeData = data.filter(d => !CLOSED_STATUSES.includes(d.status));
+    const unlinkedCount = activeData.filter(d => !d.is_linked).length;
+    const linkedCount = activeData.filter(d => d.is_linked).length;
+    const totalPages = Math.ceil(activeData.length / PAGE_SIZE);
+    const pagedData = activeData.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
     return (
         <div className="bg-[#111827] border border-gray-800 rounded-lg p-6">
@@ -36,7 +45,9 @@ export default function UnlinkedDefectsTable() {
                             </span>
                         )}
                     </h3>
-                    <p className="text-xs text-gray-500 mt-1">Defectos en Jira vs Vinculación en TestRail</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                        Solo Defecto_TestRail · Activos ({activeData.length}) — {linkedCount} vinculados · {unlinkedCount} sin vincular
+                    </p>
                 </div>
             </div>
 
@@ -52,7 +63,7 @@ export default function UnlinkedDefectsTable() {
                         </tr>
                     </thead>
                     <tbody className="text-sm text-gray-300">
-                        {data.slice(0, 50).map((row) => (
+                        {pagedData.map((row) => (
                             <tr key={row.key} className="border-b border-gray-800 hover:bg-gray-900/50 transition-colors group">
                                 <td className="py-2 px-4 font-mono text-blue-400">
                                     <a href={row.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:underline">
@@ -67,8 +78,8 @@ export default function UnlinkedDefectsTable() {
                                 </td>
                                 <td className="py-2 px-4">
                                     <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono uppercase border ${row.priority === 'Crítica' ? 'bg-rose-900/20 text-rose-400 border-rose-900/50' :
-                                            row.priority === 'Alta' ? 'bg-orange-900/20 text-orange-400 border-orange-900/50' :
-                                                'bg-gray-800 text-gray-400 border-gray-700'
+                                        row.priority === 'Alta' ? 'bg-orange-900/20 text-orange-400 border-orange-900/50' :
+                                            'bg-gray-800 text-gray-400 border-gray-700'
                                         }`}>
                                         {row.priority}
                                     </span>
@@ -90,11 +101,31 @@ export default function UnlinkedDefectsTable() {
                         ))}
                     </tbody>
                 </table>
-                {data.length > 50 && (
-                    <div className="text-center py-2 text-xs text-gray-500 font-mono border-t border-gray-800">
-                        MOSTRANDO 50 DE {data.length} REGISTROS
+                {/* Pagination */}
+                <div className="flex items-center justify-between border-t border-gray-800 pt-3 mt-1">
+                    <span className="text-[10px] font-mono text-gray-500">
+                        Mostrando {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, activeData.length)} de {activeData.length} activos
+                    </span>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setPage(p => Math.max(0, p - 1))}
+                            disabled={page === 0}
+                            className="p-1 rounded border border-gray-700 text-gray-400 hover:text-white hover:border-gray-500 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                        >
+                            <ChevronLeft size={14} />
+                        </button>
+                        <span className="text-[10px] font-mono text-gray-400">
+                            Pág {page + 1} / {totalPages || 1}
+                        </span>
+                        <button
+                            onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+                            disabled={page >= totalPages - 1}
+                            className="p-1 rounded border border-gray-700 text-gray-400 hover:text-white hover:border-gray-500 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                        >
+                            <ChevronRight size={14} />
+                        </button>
                     </div>
-                )}
+                </div>
             </div>
         </div>
     );

@@ -14,6 +14,7 @@ import { StatusPieChart, DefectsBarChart, DefectsStatusChart, VelocityAreaChart,
 import UnlinkedDefectsTable from './UnlinkedDefectsTable';
 import { LayoutGrid, Database, Calendar, Layers, ChevronDown, AlertTriangle, Clock } from 'lucide-react';
 import { clsx } from 'clsx';
+import HelpModal from './HelpModal';
 
 type DashboardType = 'mart' | 'pruebas';
 
@@ -110,27 +111,54 @@ export default function DashboardView() {
         });
     }, [runsData, selectedYear, selectedMonth, selectedProject]);
 
+    const filteredJiraData = useMemo(() => {
+        const CLOSED = ['Terminado', 'Cerrado', 'Cancelado', 'Mitigado', 'Done', 'Closed', 'Resolved'];
+        return jiraData.filter(d => {
+            // Only Defecto_TestRail (or legacy rows without issue_type set)
+            if (d.issue_type && d.issue_type !== 'Defecto_TestRail') return false;
+            // Only active (non-closed)
+            if (CLOSED.includes(d.status)) return false;
+            // Project filter: use linked_projects field (comma-separated project names)
+            if (selectedProject !== 'All') {
+                const projectEntry = projects.find(p => String(p.id) === selectedProject);
+                if (projectEntry && d.linked_projects) {
+                    if (!d.linked_projects.includes(projectEntry.name)) return false;
+                } else if (projectEntry && !d.linked_projects) {
+                    // unlinked defects: still show when no project filter or show as unlinked
+                    return true;
+                }
+            }
+            return true;
+        });
+    }, [jiraData, selectedProject, projects]);
+
     const kpis = useMemo(() => {
         if (!filteredData.length) return null;
         const reduceSum = (key: string) => filteredData.reduce((acc, row) => acc + (Number(row[key]) || 0), 0);
         const countIf = (predicate: (row: any) => boolean) => filteredData.filter(predicate).length;
 
-        const closedStatuses = ['Terminado', 'Cerrado', 'Cancelado', 'Mitigado'];
-        const activeJira = jiraData.filter(d => !closedStatuses.includes(d.status)).length;
-        const totalJira = jiraData.length;
+        // All Defecto_TestRail issues (active + closed) — for total count use raw jiraData
+        const allDefectoTR = jiraData.filter(d => !d.issue_type || d.issue_type === 'Defecto_TestRail');
+        const CLOSED = ['Terminado', 'Cerrado', 'Cancelado', 'Mitigado', 'Done', 'Closed', 'Resolved'];
+        const activeDefects = filteredJiraData; // already filtered to active + Defecto_TestRail
+        const linkedActive = activeDefects.filter(d => d.is_linked).length;
+        const unlinkedActive = activeDefects.filter(d => !d.is_linked).length;
+        const totalDefectos = allDefectoTR.length;
 
         return {
             total_runs: reduceSum('total_runs'),
             total_passed: reduceSum('total_passed'),
-            total_defects: totalJira,
-            active_defects: activeJira,
+            total_defects: totalDefectos,
+            active_defects: activeDefects.length,
+            linked_defects: linkedActive,
+            unlinked_defects: unlinkedActive,
             uat_certified: reduceSum('Soluciones_Certificadas_UAT'),
             uat_returned: reduceSum('Soluciones_Devueltas_UAT'),
             uat_in_process: reduceSum('Soluciones_En_Proceso_UAT'),
             certified_plans: countIf(d => d.is_certified === 1),
             process_plans: countIf(d => d.is_in_process === 1),
         };
-    }, [filteredData, jiraData]);
+    }, [filteredData, jiraData, filteredJiraData]);
 
     return (
         <div className="max-w-[1600px] mx-auto p-6 md:p-8 space-y-6">
@@ -145,22 +173,26 @@ export default function DashboardView() {
                     <h1 className="text-3xl text-white font-medium tracking-tight">Tablero de Control, KPIS QA SURA</h1>
                 </div>
 
-                <div className="flex bg-[#111827] border border-gray-800 p-1 rounded-lg">
-                    {(['mart', 'pruebas'] as const).map((tab) => (
-                        <button
-                            key={tab}
-                            onClick={() => setActiveTab(tab)}
-                            className={clsx(
-                                "px-4 py-1.5 text-xs font-mono uppercase transition-all rounded-md flex items-center gap-2",
-                                activeTab === tab
-                                    ? "bg-gray-800 text-white shadow-sm border border-gray-700"
-                                    : "text-gray-500 hover:text-gray-300"
-                            )}
-                        >
-                            {tab === 'mart' ? <LayoutGrid size={12} /> : <Database size={12} />}
-                            Tablero {tab}
-                        </button>
-                    ))}
+                {/* Tab Switcher + Help */}
+                <div className="flex items-center gap-3">
+                    <div className="flex bg-[#111827] border border-gray-800 p-1 rounded-lg">
+                        {(['mart', 'pruebas'] as const).map((tab) => (
+                            <button
+                                key={tab}
+                                onClick={() => setActiveTab(tab)}
+                                className={clsx(
+                                    "px-4 py-1.5 text-xs font-mono uppercase transition-all rounded-md flex items-center gap-2",
+                                    activeTab === tab
+                                        ? "bg-gray-800 text-white shadow-sm border border-gray-700"
+                                        : "text-gray-500 hover:text-gray-300"
+                                )}
+                            >
+                                {tab === 'mart' ? <LayoutGrid size={12} /> : <Database size={12} />}
+                                Tablero {tab}
+                            </button>
+                        ))}
+                    </div>
+                    <HelpModal />
                 </div>
             </header>
 
@@ -240,9 +272,9 @@ export default function DashboardView() {
                         <MetricCard
                             label="Defectos Activos"
                             value={kpis?.active_defects || 0}
-                            subValue={`Total: ${kpis?.total_defects}`}
                             statusColor={(kpis?.active_defects || 0) > 0 ? 'red' : 'gray'}
                             trend={(kpis?.active_defects || 0) > 0 ? 'down' : 'neutral'}
+                            subValue={`Vinculados: ${kpis?.linked_defects ?? 0} · Sin vincular: ${kpis?.unlinked_defects ?? 0} · Total TR: ${kpis?.total_defects ?? 0}`}
                         />
                         <MetricCard
                             label="Casos Ejecutados"
@@ -254,9 +286,14 @@ export default function DashboardView() {
                     {/* UAT Verifications Timeline (Spans full width exactly below KPIs) */}
                     {activeTab === 'mart' && (
                         <div className="col-span-12">
-                            <UatTimelineChart data={uatTimelineData} />
+                            <UatTimelineChart data={uatTimelineData.filter(d => {
+                                if (selectedYear !== 'All' && d.month_key && !d.month_key.startsWith(selectedYear)) return false;
+                                if (selectedMonth !== 'All' && d.month_key !== selectedMonth) return false;
+                                return true;
+                            })} />
                         </div>
                     )}
+
 
                     {/* Main Chart Area */}
                     <div className="col-span-12 lg:col-span-8 bg-[#111827] border border-gray-800 rounded-lg p-6 flex flex-col">
@@ -353,15 +390,15 @@ export default function DashboardView() {
                             <DelayBarChart data={filteredData} />
                         </div>
 
-                        {/* Defect Analysis: Severity & Status */}
+                        {/* Defect Analysis: Severity & Status — filtered by project */}
                         <div className="bg-[#111827] border border-gray-800 rounded-lg p-6 flex flex-col gap-6">
                             <div>
                                 <h3 className="text-xs font-mono uppercase text-gray-500 mb-4">Severidad de Defectos</h3>
-                                <DefectsBarChart data={jiraData} />
+                                <DefectsBarChart data={filteredJiraData} />
                             </div>
                             <div className="border-t border-gray-800 pt-6">
                                 <h3 className="text-xs font-mono uppercase text-gray-500 mb-4">Estado de Defectos</h3>
-                                <DefectsStatusChart data={jiraData} />
+                                <DefectsStatusChart data={filteredJiraData} />
                             </div>
                         </div>
                     </div>
