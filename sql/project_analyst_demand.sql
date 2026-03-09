@@ -24,6 +24,6 @@ WHERE
   t.assignedto_id IS NOT NULL
   AND t.assignedto_id > 0
   AND proj.is_completed = FALSE
-  AND r.project_id NOT IN (1, 3, 7, 9, 17, 18, 19, 21, 23)
+  AND r.project_id NOT IN (1, 7, 9, 17, 18, 19, 21, 23)
 GROUP BY 1, 2, 3, 4
 ORDER BY month_key, project_name;

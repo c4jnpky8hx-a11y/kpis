@@ -35,7 +35,7 @@ active_assignments AS (
     AND t.assignedto_id > 0
     AND proj.is_completed = FALSE
     -- Exclude test/example/internal/closed/automation projects
-    AND r.project_id NOT IN (1, 3, 7, 9, 17, 18, 19, 21, 23)
+    AND r.project_id NOT IN (1, 7, 9, 17, 18, 19, 21, 23)
 )
 SELECT
   a.assignedto_id,

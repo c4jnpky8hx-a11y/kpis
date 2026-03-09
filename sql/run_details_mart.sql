@@ -28,7 +28,7 @@ WITH run_stats AS (
         r.project_id = 12 
         OR r.project_id = 8
         OR (
-            r.project_id NOT IN (1, 3, 7, 8, 9, 12, 17, 18, 19, 21, 23) 
+            r.project_id NOT IN (1, 7, 8, 9, 12, 17, 18, 19, 21, 23) 
             AND proj.is_completed = FALSE 
         )
     GROUP BY 1, 2, 3, 4, 5, 6, 7, 8, 9
