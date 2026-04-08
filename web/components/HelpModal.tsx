@@ -171,37 +171,40 @@ const COLOR_MAP: Record<string, string> = {
 
 function IndicatorCard({ ind }: { ind: Indicator }) {
     const [open, setOpen] = useState(false);
-    const colorClass = COLOR_MAP[ind.color] || COLOR_MAP.gray;
     return (
-        <div className="border border-gray-800 rounded-lg overflow-hidden bg-[#0d1117] hover:border-gray-700 transition-colors">
+        <div className="rounded-lg overflow-hidden transition-all"
+            style={{ border: open ? '1px solid var(--border-blue)' : '1px solid var(--border-light)', background: 'var(--bg-card)' }}>
             <button
                 onClick={() => setOpen(o => !o)}
                 className="w-full flex items-start justify-between p-4 text-left"
             >
                 <div className="flex items-center gap-3">
-                    <span className={`w-8 h-8 rounded-lg border flex items-center justify-center text-base flex-shrink-0 ${colorClass}`}>
+                    <span className="w-8 h-8 rounded-lg flex items-center justify-center text-base flex-shrink-0"
+                        style={{ background: 'var(--bg-blue-tint)', border: '1px solid var(--border-blue)' }}>
                         {ind.icon}
                     </span>
                     <div>
-                        <div className="text-sm font-medium text-white">{ind.name}</div>
-                        <div className="text-[10px] font-mono text-gray-500 mt-0.5">{ind.description.slice(0, 80)}…</div>
+                        <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{ind.name}</div>
+                        <div className="text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{ind.description.slice(0, 80)}…</div>
                     </div>
                 </div>
-                {open ? <ChevronUp size={16} className="text-gray-500 flex-shrink-0 mt-1" /> : <ChevronDown size={16} className="text-gray-500 flex-shrink-0 mt-1" />}
+                {open
+                    ? <ChevronUp size={16} className="flex-shrink-0 mt-1" style={{ color: 'var(--sura-blue)' }} />
+                    : <ChevronDown size={16} className="flex-shrink-0 mt-1" style={{ color: 'var(--text-muted)' }} />}
             </button>
             {open && (
-                <div className="px-4 pb-4 space-y-4 border-t border-gray-800">
+                <div className="px-4 pb-4 space-y-4" style={{ borderTop: '1px solid var(--border-light)' }}>
                     <div>
-                        <h4 className="text-[10px] font-mono uppercase text-gray-500 mt-4 mb-1">¿Qué mide?</h4>
-                        <p className="text-xs text-gray-300">{ind.description}</p>
+                        <h4 className="text-[10px] uppercase mt-4 mb-1" style={{ color: 'var(--text-muted)', letterSpacing: '0.08em' }}>¿Qué mide?</h4>
+                        <p className="text-xs" style={{ color: 'var(--text-body)' }}>{ind.description}</p>
                     </div>
                     <div>
-                        <h4 className="text-[10px] font-mono uppercase text-gray-500 mb-1">¿Cómo se calcula?</h4>
-                        <pre className="text-xs text-gray-300 whitespace-pre-wrap font-sans">{ind.howCalculated}</pre>
+                        <h4 className="text-[10px] uppercase mb-1" style={{ color: 'var(--text-muted)', letterSpacing: '0.08em' }}>¿Cómo se calcula?</h4>
+                        <pre className="text-xs whitespace-pre-wrap font-sans" style={{ color: 'var(--text-secondary)' }}>{ind.howCalculated}</pre>
                     </div>
                     <div>
-                        <h4 className="text-[10px] font-mono uppercase text-gray-500 mb-1">¿Cómo interpretarlo?</h4>
-                        <p className="text-xs text-gray-300">{ind.howToRead}</p>
+                        <h4 className="text-[10px] uppercase mb-1" style={{ color: 'var(--text-muted)', letterSpacing: '0.08em' }}>¿Cómo interpretarlo?</h4>
+                        <p className="text-xs" style={{ color: 'var(--text-body)' }}>{ind.howToRead}</p>
                     </div>
                 </div>
             )}
@@ -225,7 +228,8 @@ export default function HelpModal() {
             {/* Trigger Button */}
             <button
                 onClick={() => setOpen(true)}
-                className="flex items-center gap-2 px-3 py-1.5 text-xs font-mono uppercase border border-gray-700 rounded-md text-gray-400 hover:text-white hover:border-gray-500 bg-[#111827] transition-all"
+                className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium uppercase rounded-lg transition-all"
+                style={{ border: '1px solid var(--border-blue)', color: 'var(--sura-blue)', background: 'var(--bg-blue-tint)' }}
             >
                 <BookOpen size={12} />
                 Cómo Interpretar
@@ -236,26 +240,30 @@ export default function HelpModal() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                     {/* Backdrop */}
                     <div
-                        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+                        className="absolute inset-0 backdrop-blur-sm"
+                        style={{ background: 'rgba(0,51,160,0.25)' }}
                         onClick={() => setOpen(false)}
                     />
 
                     {/* Modal Panel */}
-                    <div className="relative bg-[#111827] border border-gray-700 rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col z-10">
+                    <div className="relative rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col z-10"
+                        style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', boxShadow: '0 20px 60px rgba(0,51,160,0.15)' }}>
                         {/* Header */}
-                        <div className="flex items-center justify-between p-6 border-b border-gray-800">
+                        <div className="flex items-center justify-between p-6" style={{ borderBottom: '2px solid var(--sura-blue)' }}>
                             <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-lg bg-blue-600/20 border border-blue-600/30 flex items-center justify-center">
-                                    <BookOpen size={16} className="text-blue-400" />
+                                <div className="w-9 h-9 rounded-lg flex items-center justify-center"
+                                    style={{ background: 'var(--sura-blue)', color: '#ffffff' }}>
+                                    <BookOpen size={18} />
                                 </div>
                                 <div>
-                                    <h2 className="text-lg font-medium text-white">Cómo Interpretar los Indicadores</h2>
-                                    <p className="text-[10px] font-mono text-gray-500">Manual de referencia · KPIS QA SURA</p>
+                                    <h2 className="text-lg font-semibold" style={{ color: 'var(--sura-blue-dark)' }}>Cómo Interpretar los Indicadores</h2>
+                                    <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Manual de referencia · KPIS QA SURA</p>
                                 </div>
                             </div>
                             <button
                                 onClick={() => setOpen(false)}
-                                className="text-gray-500 hover:text-white transition-colors p-1 rounded hover:bg-gray-800"
+                                className="p-1 rounded-lg transition-colors"
+                                style={{ color: 'var(--text-muted)' }}
                             >
                                 <X size={20} />
                             </button>
@@ -268,21 +276,28 @@ export default function HelpModal() {
                                 placeholder="Buscar indicador..."
                                 value={search}
                                 onChange={e => setSearch(e.target.value)}
-                                className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 font-mono outline-none focus:border-gray-500 transition-colors"
+                                className="w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
+                                style={{ background: 'var(--bg-page)', border: '1px solid var(--border-light)', color: 'var(--text-body)' }}
                             />
                         </div>
 
                         {/* Section Tabs */}
                         {search === '' && (
-                            <div className="px-6 py-2 flex gap-2 flex-wrap border-b border-gray-800">
+                            <div className="px-6 py-2 flex gap-2 flex-wrap" style={{ borderBottom: '1px solid var(--border-light)' }}>
                                 {SECTIONS.map(sec => (
                                     <button
                                         key={sec}
                                         onClick={() => setActiveSection(sec)}
-                                        className={`px-3 py-1 text-[10px] font-mono uppercase rounded-md border transition-all ${activeSection === sec
-                                                ? 'bg-blue-600/20 border-blue-600/40 text-blue-400'
-                                                : 'border-gray-700 text-gray-500 hover:border-gray-600 hover:text-gray-400'
-                                            }`}
+                                        className="px-3 py-1 text-[10px] font-medium uppercase rounded-md border transition-all"
+                                        style={activeSection === sec ? {
+                                            background: 'var(--sura-blue)',
+                                            borderColor: 'var(--sura-blue)',
+                                            color: '#ffffff'
+                                        } : {
+                                            background: 'transparent',
+                                            border: '1px solid var(--border-light)',
+                                            color: 'var(--text-secondary)'
+                                        }}
                                     >
                                         {sec}
                                     </button>
@@ -291,9 +306,9 @@ export default function HelpModal() {
                         )}
 
                         {/* Content */}
-                        <div className="flex-1 overflow-y-auto p-6 space-y-3">
+                        <div className="flex-1 overflow-y-auto p-6 space-y-3" style={{ background: 'var(--bg-page)' }}>
                             {filtered.length === 0 ? (
-                                <div className="text-center py-10 text-gray-600 text-sm font-mono">
+                                <div className="text-center py-10 text-sm" style={{ color: 'var(--text-muted)' }}>
                                     No se encontraron indicadores
                                 </div>
                             ) : (
@@ -302,7 +317,7 @@ export default function HelpModal() {
                         </div>
 
                         {/* Footer */}
-                        <div className="px-6 py-3 border-t border-gray-800 text-[9px] font-mono text-gray-600 text-center">
+                        <div className="px-6 py-3 text-[9px] text-center" style={{ borderTop: '1px solid var(--border-light)', color: 'var(--text-muted)' }}>
                             {INDICATORS.length} indicadores documentados · Haz clic en un indicador para expandir su detalle
                         </div>
                     </div>

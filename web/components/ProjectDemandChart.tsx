@@ -121,28 +121,24 @@ export default function ProjectDemandChart() {
         }));
     }, [filteredData, colorMap]);
 
+    const cardStyle = { background: 'var(--bg-card)', border: '1px solid var(--border-light)', boxShadow: '0 1px 4px rgba(0,51,160,0.06)' };
+    const headingStyle = { color: 'var(--text-secondary)', letterSpacing: '0.08em' };
+    const tooltipStyle = { background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '12px 14px', boxShadow: '0 4px 16px rgba(0,51,160,0.10)', fontSize: '12px' };
+
     if (loading) {
         return (
-            <div className="bg-[#111827] border border-gray-800 rounded-lg p-6">
-                <h3 className="text-xs font-mono uppercase text-gray-500 mb-4">
-                    Demanda de Analistas por Proyecto
-                </h3>
-                <div className="flex items-center justify-center h-[300px] text-gray-500 text-sm font-mono">
-                    Cargando...
-                </div>
+            <div className="rounded-xl p-6" style={cardStyle}>
+                <h3 className="text-xs font-semibold uppercase mb-4" style={headingStyle}>Demanda de Analistas por Proyecto</h3>
+                <div className="flex items-center justify-center h-[300px] text-sm" style={{ color: 'var(--sura-blue)' }}>Cargando...</div>
             </div>
         );
     }
 
     if (!chartData.length) {
         return (
-            <div className="bg-[#111827] border border-gray-800 rounded-lg p-6">
-                <h3 className="text-xs font-mono uppercase text-gray-500 mb-4">
-                    Demanda de Analistas por Proyecto
-                </h3>
-                <div className="flex items-center justify-center h-[200px] text-gray-600 text-sm font-mono">
-                    Sin datos de demanda
-                </div>
+            <div className="rounded-xl p-6" style={cardStyle}>
+                <h3 className="text-xs font-semibold uppercase mb-4" style={headingStyle}>Demanda de Analistas por Proyecto</h3>
+                <div className="flex items-center justify-center h-[200px] text-sm" style={{ color: 'var(--text-muted)' }}>Sin datos de demanda</div>
             </div>
         );
     }
@@ -152,30 +148,23 @@ export default function ProjectDemandChart() {
         if (!active || !payload?.length) return null;
         const items = payload.filter((p: any) => p.value > 0);
         return (
-            <div className="bg-[#1f2937] border border-gray-700 rounded-lg p-3 shadow-xl text-sm max-w-xs">
-                <p className="font-mono text-white font-bold mb-2 border-b border-gray-600 pb-1">{label}</p>
+            <div style={tooltipStyle}>
+                <p style={{ color: '#0033A0', fontWeight: 700, marginBottom: '8px', paddingBottom: '6px', borderBottom: '1px solid #E2E8F0' }}>{label}</p>
                 {items.map((entry: any, i: number) => {
-                    const testKey = `${entry.dataKey}_tests`;
-                    const namesKey = `${entry.dataKey}_names`;
-                    const tests = entry.payload?.[testKey] || 0;
-                    const names = entry.payload?.[namesKey] || '';
+                    const tests = entry.payload?.[`${entry.dataKey}_tests`] || 0;
+                    const names = entry.payload?.[`${entry.dataKey}_names`] || '';
                     return (
-                        <div key={i} className="mb-1.5">
-                            <div className="flex justify-between gap-3 text-gray-300">
-                                <span className="flex items-center gap-1.5">
-                                    <span
-                                        className="w-2 h-2 rounded-full inline-block shrink-0"
-                                        style={{ backgroundColor: entry.color }}
-                                    />
-                                    <span className="truncate max-w-[150px]">{entry.name}</span>
+                        <div key={i} style={{ marginBottom: '6px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', color: '#4A6390' }}>
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: entry.color, display: 'inline-block', flexShrink: 0 }} />
+                                    <span style={{ maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{entry.name}</span>
                                 </span>
-                                <span className="font-mono font-bold text-white shrink-0">
+                                <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#0033A0' }}>
                                     {entry.value} {entry.value === 1 ? 'analista' : 'analistas'}
                                 </span>
                             </div>
-                            <div className="text-[10px] text-gray-500 pl-3.5">
-                                {tests} casos · {names}
-                            </div>
+                            <div style={{ fontSize: '10px', color: '#8499B8', paddingLeft: '14px' }}>{tests} casos · {names}</div>
                         </div>
                     );
                 })}
@@ -189,133 +178,88 @@ export default function ProjectDemandChart() {
         const data = payload[0]?.payload;
         if (!data) return null;
         return (
-            <div className="bg-[#1f2937] border border-gray-700 rounded-lg p-3 shadow-xl text-sm">
-                <p className="font-mono text-white font-bold mb-1">{data.project}</p>
-                <p className="text-gray-400 text-xs mb-2">{data.month}</p>
-                <div className="space-y-1 text-gray-300">
-                    <div className="flex justify-between gap-4">
+            <div style={tooltipStyle}>
+                <p style={{ color: '#0033A0', fontWeight: 700, marginBottom: '4px' }}>{data.project}</p>
+                <p style={{ color: '#8499B8', fontSize: '11px', marginBottom: '8px' }}>{data.month}</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', color: '#4A6390' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
                         <span>Analistas:</span>
-                        <span className="font-mono font-bold text-indigo-400">{data.analysts}</span>
+                        <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#2D6DF6' }}>{data.analysts}</span>
                     </div>
-                    <div className="flex justify-between gap-4">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
                         <span>Casos:</span>
-                        <span className="font-mono font-bold text-cyan-400">{data.tests}</span>
+                        <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#00AEC7' }}>{data.tests}</span>
                     </div>
                 </div>
                 {data.names && (
-                    <p className="text-[10px] text-gray-500 mt-2 border-t border-gray-600 pt-1">
-                        {data.names}
-                    </p>
+                    <p style={{ fontSize: '10px', color: '#8499B8', marginTop: '8px', paddingTop: '6px', borderTop: '1px solid #E2E8F0' }}>{data.names}</p>
                 )}
             </div>
         );
     };
 
+    const axTick = { fill: '#8499B8', fontSize: 11, fontFamily: 'var(--font-inter)' };
+
     return (
-        <div className="bg-[#111827] border border-gray-800 rounded-lg p-6">
+        <div className="rounded-xl p-6" style={cardStyle}>
             <div className="flex items-center justify-between mb-5">
                 <div>
-                    <h3 className="text-xs font-mono uppercase text-gray-500">
-                        Demanda de Analistas por Proyecto
-                    </h3>
-                    <p className="text-[10px] text-gray-600 mt-0.5 font-mono">
-                        Evolución del uso de analistas en el tiempo
-                    </p>
+                    <h3 className="text-xs font-semibold uppercase" style={headingStyle}>Demanda de Analistas por Proyecto</h3>
+                    <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Evolución del uso de analistas en el tiempo</p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-gray-600 font-mono uppercase">Año:</span>
+                    <span className="text-[10px] font-mono uppercase" style={{ color: 'var(--text-muted)' }}>Año:</span>
                     <select
                         value={selectedYear}
                         onChange={(e) => setSelectedYear(e.target.value)}
-                        className="bg-[#0d1117] border border-gray-700 text-gray-300 text-xs font-mono rounded px-2 py-1 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                        className="text-xs rounded px-2 py-1 outline-none"
+                        style={{ background: 'var(--bg-page)', border: '1px solid var(--border-light)', color: 'var(--text-body)' }}
                     >
                         <option value="all">Todos</option>
-                        {years.map((y) => (
-                            <option key={y} value={String(y)}>
-                                {y}
-                            </option>
-                        ))}
+                        {years.map((y) => <option key={y} value={String(y)}>{y}</option>)}
                     </select>
                 </div>
             </div>
 
             {/* Line Chart */}
             <div className="mb-6">
-                <p className="text-[10px] text-gray-600 font-mono uppercase mb-2">
+                <p className="text-[10px] uppercase mb-2" style={{ color: 'var(--text-muted)', letterSpacing: '0.08em' }}>
                     Línea de Tendencia — Analistas asignados por mes
                 </p>
                 <ResponsiveContainer width="100%" height={300}>
                     <ComposedChart data={chartData} margin={{ top: 5, right: 30, left: 5, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                        <XAxis
-                            dataKey="month"
-                            tick={{ fill: '#9ca3af', fontSize: 11, fontFamily: 'monospace' }}
-                            axisLine={{ stroke: '#374151' }}
-                        />
-                        <YAxis
-                            tick={{ fill: '#9ca3af', fontSize: 11, fontFamily: 'monospace' }}
-                            axisLine={{ stroke: '#374151' }}
-                            label={{
-                                value: 'Analistas',
-                                angle: -90,
-                                position: 'insideLeft',
-                                style: { fill: '#6b7280', fontSize: 10, fontFamily: 'monospace' },
-                            }}
-                            allowDecimals={false}
-                        />
+                        <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+                        <XAxis dataKey="month" tick={axTick} axisLine={false} tickLine={false} />
+                        <YAxis tick={axTick} axisLine={false} tickLine={false}
+                            label={{ value: 'Analistas', angle: -90, position: 'insideLeft', style: { fill: '#8499B8', fontSize: 10, fontFamily: 'var(--font-inter)' } }}
+                            allowDecimals={false} />
                         <Tooltip content={<CustomLineTooltip />} />
-                        <Legend
-                            wrapperStyle={{ fontSize: 10, fontFamily: 'monospace' }}
-                            iconType="circle"
-                            iconSize={7}
-                        />
+                        <Legend wrapperStyle={{ fontSize: 10, fontFamily: 'var(--font-inter)', color: '#4A6390' }} iconType="circle" iconSize={7} />
                         {projects.map((proj) => (
-                            <Line
-                                key={proj}
-                                type="monotone"
-                                dataKey={proj}
-                                stroke={colorMap[proj]}
-                                strokeWidth={2}
+                            <Line key={proj} type="monotone" dataKey={proj} stroke={colorMap[proj]} strokeWidth={2}
                                 dot={{ r: 4, fill: colorMap[proj], strokeWidth: 0 }}
                                 activeDot={{ r: 6, strokeWidth: 2, stroke: '#fff' }}
-                                connectNulls={false}
-                            />
+                                connectNulls={false} />
                         ))}
                     </ComposedChart>
                 </ResponsiveContainer>
             </div>
 
-            {/* Scatter Plot — Bubble chart: x=month, y=analysts, size=tests */}
+            {/* Scatter Plot */}
             <div className="mb-6">
-                <p className="text-[10px] text-gray-600 font-mono uppercase mb-2">
+                <p className="text-[10px] uppercase mb-2" style={{ color: 'var(--text-muted)', letterSpacing: '0.08em' }}>
                     Dispersión — Tamaño proporcional a casos de prueba
                 </p>
                 <ResponsiveContainer width="100%" height={280}>
                     <ScatterChart margin={{ top: 5, right: 30, left: 5, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                        <XAxis
-                            dataKey="month"
-                            type="category"
-                            tick={{ fill: '#9ca3af', fontSize: 11, fontFamily: 'monospace' }}
-                            axisLine={{ stroke: '#374151' }}
-                            allowDuplicatedCategory={false}
-                        />
-                        <YAxis
-                            dataKey="analysts"
-                            type="number"
-                            tick={{ fill: '#9ca3af', fontSize: 11, fontFamily: 'monospace' }}
-                            axisLine={{ stroke: '#374151' }}
-                            label={{
-                                value: 'Analistas',
-                                angle: -90,
-                                position: 'insideLeft',
-                                style: { fill: '#6b7280', fontSize: 10, fontFamily: 'monospace' },
-                            }}
-                            allowDecimals={false}
-                        />
+                        <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+                        <XAxis dataKey="month" type="category" tick={axTick} axisLine={false} tickLine={false} allowDuplicatedCategory={false} />
+                        <YAxis dataKey="analysts" type="number" tick={axTick} axisLine={false} tickLine={false}
+                            label={{ value: 'Analistas', angle: -90, position: 'insideLeft', style: { fill: '#8499B8', fontSize: 10, fontFamily: 'var(--font-inter)' } }}
+                            allowDecimals={false} />
                         <ZAxis dataKey="tests" range={[40, 400]} />
-                        <Tooltip content={<CustomScatterTooltip />} cursor={{ strokeDasharray: '3 3', stroke: '#374151' }} />
-                        <Scatter data={scatterData} fill="#6366f1">
+                        <Tooltip content={<CustomScatterTooltip />} cursor={{ strokeDasharray: '3 3', stroke: '#DFEAFF' }} />
+                        <Scatter data={scatterData} fill="#2D6DF6">
                             {scatterData.map((entry, i) => (
                                 <Cell key={i} fill={entry.color} fillOpacity={0.8} />
                             ))}
@@ -325,44 +269,35 @@ export default function ProjectDemandChart() {
             </div>
 
             {/* Summary Table */}
-            <div className="overflow-x-auto">
-                <table className="w-full text-xs font-mono">
+            <div className="overflow-x-auto" style={{ borderTop: '1px solid var(--border-light)', paddingTop: '16px' }}>
+                <table className="w-full text-xs">
                     <thead>
-                        <tr className="border-b border-gray-800 text-gray-500 uppercase">
-                            <th className="text-left py-2 px-2">Mes</th>
-                            <th className="text-left py-2 px-2">Proyecto</th>
-                            <th className="text-right py-2 px-2">Analistas</th>
-                            <th className="text-right py-2 px-2">Casos</th>
-                            <th className="text-left py-2 px-2">Equipo</th>
+                        <tr style={{ borderBottom: '1px solid var(--border-light)' }}>
+                            {['Mes', 'Proyecto', 'Analistas', 'Casos', 'Equipo'].map((h, i) => (
+                                <th key={h} className={`py-2 px-2 font-semibold uppercase ${i >= 2 && i <= 3 ? 'text-right' : 'text-left'}`}
+                                    style={{ color: 'var(--text-secondary)', fontSize: '10px', letterSpacing: '0.08em' }}>
+                                    {h}
+                                </th>
+                            ))}
                         </tr>
                     </thead>
                     <tbody>
                         {filteredData
                             .sort((a, b) => a.month_key.localeCompare(b.month_key) || Number(b.analyst_count) - Number(a.analyst_count))
                             .map((row, i) => (
-                                <tr
-                                    key={i}
-                                    className="border-b border-gray-800/50 hover:bg-white/5 transition-colors"
-                                >
-                                    <td className="py-2 px-2 text-gray-400">{row.month_key}</td>
+                                <tr key={i} style={{ borderBottom: '1px solid var(--border-light)' }}
+                                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-blue-tint)')}
+                                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                                    <td className="py-2 px-2" style={{ color: 'var(--text-secondary)' }}>{row.month_key}</td>
                                     <td className="py-2 px-2">
-                                        <span className="flex items-center gap-1.5">
-                                            <span
-                                                className="w-2 h-2 rounded-full inline-block shrink-0"
-                                                style={{ backgroundColor: colorMap[row.project_name] || '#6b7280' }}
-                                            />
-                                            <span className="text-gray-300 truncate max-w-[200px]">{row.project_name}</span>
+                                        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: colorMap[row.project_name] || '#B4B4B5', display: 'inline-block', flexShrink: 0 }} />
+                                            <span style={{ color: 'var(--text-body)', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.project_name}</span>
                                         </span>
                                     </td>
-                                    <td className="py-2 px-2 text-right">
-                                        <span className="text-indigo-400 font-bold">{Number(row.analyst_count)}</span>
-                                    </td>
-                                    <td className="py-2 px-2 text-right">
-                                        <span className="text-cyan-400 font-bold">{Number(row.test_count)}</span>
-                                    </td>
-                                    <td className="py-2 px-2 text-gray-500 truncate max-w-[180px]">
-                                        {row.analyst_names || '—'}
-                                    </td>
+                                    <td className="py-2 px-2 text-right font-bold" style={{ color: '#2D6DF6', fontFamily: 'var(--font-mono)' }}>{Number(row.analyst_count)}</td>
+                                    <td className="py-2 px-2 text-right font-bold" style={{ color: '#00AEC7', fontFamily: 'var(--font-mono)' }}>{Number(row.test_count)}</td>
+                                    <td className="py-2 px-2 truncate max-w-[180px]" style={{ color: 'var(--text-muted)' }}>{row.analyst_names || '—'}</td>
                                 </tr>
                             ))}
                     </tbody>

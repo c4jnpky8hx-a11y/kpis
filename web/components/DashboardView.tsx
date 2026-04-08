@@ -163,29 +163,42 @@ export default function DashboardView() {
     return (
         <div className="max-w-[1600px] mx-auto p-6 md:p-8 space-y-6">
 
-            {/* Top Navigation / Branding */}
-            <header className="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-gray-800 pb-6">
+            {/* Top Navigation / Branding — Sura style */}
+            <header className="flex flex-col md:flex-row justify-between items-start md:items-center pb-5"
+                style={{ borderBottom: '2px solid var(--sura-blue)' }}>
                 <div>
-                    <div className="flex items-center gap-2 mb-1">
-                        <div className="bg-blue-600 w-1 h-4 rounded-sm"></div>
-                        <h4 className="text-gray-400 text-xs font-mono uppercase tracking-[0.2em]">Aseguramiento de Calidad</h4>
+                    {/* SEGUROS badge — libro de marca Sura */}
+                    <div className="inline-flex items-center px-2.5 py-0.5 mb-2 rounded-sm text-[10px] font-bold uppercase tracking-widest border"
+                        style={{ borderColor: 'var(--sura-blue)', color: 'var(--sura-blue)' }}>
+                        Seguros · QA
                     </div>
-                    <h1 className="text-3xl text-white font-medium tracking-tight">Tablero de Control, KPIS QA SURA</h1>
+                    <h1 className="text-2xl font-semibold tracking-tight"
+                        style={{ color: 'var(--sura-blue-dark)' }}>
+                        Tablero de Control, KPIS QA SURA
+                    </h1>
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                        Aseguramiento de Calidad — Dashboard Operativo
+                    </p>
                 </div>
 
                 {/* Tab Switcher + Help */}
-                <div className="flex items-center gap-3">
-                    <div className="flex bg-[#111827] border border-gray-800 p-1 rounded-lg">
+                <div className="flex items-center gap-3 mt-4 md:mt-0">
+                    <div className="flex border rounded-lg p-1 gap-1"
+                        style={{ background: 'var(--bg-card)', borderColor: 'var(--border-light)' }}>
                         {(['mart', 'pruebas'] as const).map((tab) => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab)}
                                 className={clsx(
-                                    "px-4 py-1.5 text-xs font-mono uppercase transition-all rounded-md flex items-center gap-2",
-                                    activeTab === tab
-                                        ? "bg-gray-800 text-white shadow-sm border border-gray-700"
-                                        : "text-gray-500 hover:text-gray-300"
+                                    "px-4 py-1.5 text-xs font-medium uppercase transition-all rounded-md flex items-center gap-2",
                                 )}
+                                style={activeTab === tab ? {
+                                    background: 'var(--sura-blue)',
+                                    color: '#ffffff',
+                                    boxShadow: '0 1px 4px rgba(45,109,246,0.3)'
+                                } : {
+                                    color: 'var(--text-secondary)'
+                                }}
                             >
                                 {tab === 'mart' ? <LayoutGrid size={12} /> : <Database size={12} />}
                                 Tablero {tab}
@@ -197,62 +210,79 @@ export default function DashboardView() {
             </header>
 
             {/* Control Bar */}
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
-                <div className="md:col-span-8 flex flex-wrap gap-4">
-                    <div className="bg-[#111827] border border-gray-800 rounded px-3 py-2 flex items-center gap-3 min-w-[150px]">
-                        <Calendar size={14} className="text-gray-500" />
-                        <select
-                            className="bg-transparent text-sm text-gray-200 outline-none w-full appearance-none font-mono"
-                            value={selectedYear}
-                            onChange={e => {
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                <div className="md:col-span-9 flex flex-wrap gap-3">
+                    {/* Filter dropdowns — Sura light style */}
+                    {[
+                        {
+                            icon: <Calendar size={14} style={{ color: 'var(--sura-blue)' }} />,
+                            minW: 'min-w-[150px]',
+                            value: selectedYear,
+                            onChange: (e: React.ChangeEvent<HTMLSelectElement>) => {
                                 setSelectedYear(e.target.value);
-                                setSelectedMonth('All'); // Reset month
-                            }}
-                        >
-                            <option value="All">Todos los Años</option>
-                            {years.map(y => <option key={y} value={y}>{y}</option>)}
-                        </select>
-                        <ChevronDown size={14} className="text-gray-600" />
-                    </div>
-                    <div className="bg-[#111827] border border-gray-800 rounded px-3 py-2 flex items-center gap-3 min-w-[200px]">
-                        <Clock size={14} className="text-gray-500" />
-                        <select
-                            className="bg-transparent text-sm text-gray-200 outline-none w-full appearance-none font-mono"
-                            value={selectedMonth}
-                            onChange={e => setSelectedMonth(e.target.value)}
-                        >
-                            <option value="All">Todos los Meses</option>
-                            {months.filter(m => selectedYear === 'All' || m.startsWith(selectedYear)).map(m => <option key={m} value={m}>{m}</option>)}
-                            {months.map(m => <option key={m} value={m}>{m}</option>)}
-                        </select>
-                        <ChevronDown size={14} className="text-gray-600" />
-                    </div>
-                    <div className="bg-[#111827] border border-gray-800 rounded px-3 py-2 flex items-center gap-3 min-w-[300px]">
-                        <Layers size={14} className="text-gray-500" />
-                        <select
-                            className="bg-transparent text-sm text-gray-200 outline-none w-full appearance-none font-mono"
-                            value={selectedProject}
-                            onChange={e => setSelectedProject(e.target.value)}
-                        >
-                            <option value="All">Todos los Proyectos</option>
-                            {projects.map(p => (
-                                <option key={p.id} value={p.id}>
-                                    {p.id} - {p.name}
-                                </option>
-                            ))}
-                        </select>
-                        <ChevronDown size={14} className="text-gray-600" />
-                    </div>
+                                setSelectedMonth('All');
+                            },
+                            children: (
+                                <>
+                                    <option value="All">Todos los Años</option>
+                                    {years.map(y => <option key={y} value={y}>{y}</option>)}
+                                </>
+                            )
+                        },
+                        {
+                            icon: <Clock size={14} style={{ color: 'var(--sura-blue)' }} />,
+                            minW: 'min-w-[200px]',
+                            value: selectedMonth,
+                            onChange: (e: React.ChangeEvent<HTMLSelectElement>) => setSelectedMonth(e.target.value),
+                            children: (
+                                <>
+                                    <option value="All">Todos los Meses</option>
+                                    {months.filter(m => selectedYear === 'All' || m.startsWith(selectedYear)).map(m => <option key={m} value={m}>{m}</option>)}
+                                </>
+                            )
+                        },
+                        {
+                            icon: <Layers size={14} style={{ color: 'var(--sura-blue)' }} />,
+                            minW: 'min-w-[300px]',
+                            value: selectedProject,
+                            onChange: (e: React.ChangeEvent<HTMLSelectElement>) => setSelectedProject(e.target.value),
+                            children: (
+                                <>
+                                    <option value="All">Todos los Proyectos</option>
+                                    {projects.map(p => (
+                                        <option key={p.id} value={p.id}>{p.id} - {p.name}</option>
+                                    ))}
+                                </>
+                            )
+                        }
+                    ].map((filter, i) => (
+                        <div key={i} className={`border rounded-lg px-3 py-2 flex items-center gap-3 ${filter.minW}`}
+                            style={{ background: 'var(--bg-card)', borderColor: 'var(--border-light)' }}>
+                            {filter.icon}
+                            <select
+                                className="bg-transparent text-sm outline-none w-full appearance-none"
+                                style={{ color: 'var(--text-body)' }}
+                                value={filter.value}
+                                onChange={filter.onChange}
+                            >
+                                {filter.children}
+                            </select>
+                            <ChevronDown size={14} style={{ color: 'var(--text-muted)' }} />
+                        </div>
+                    ))}
                 </div>
-                <div className="md:col-span-4 text-right">
-                    <span className="text-xs text-gray-600 font-mono">
-                        ULTIMA ACTUALIZACION: <span className="text-gray-400">{mounted ? lastUpdated.toLocaleTimeString() : '--:--:--'}</span>
+                <div className="md:col-span-3 text-right">
+                    <span className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>
+                        Actualizado: <span style={{ color: 'var(--text-secondary)' }}>{mounted ? lastUpdated.toLocaleTimeString() : '--:--:--'}</span>
                     </span>
                 </div>
             </div>
 
             {loading ? (
-                <div className="h-64 flex items-center justify-center text-gray-600 font-mono text-xs animate-pulse">CARGANDO DATOS...</div>
+                <div className="h-64 flex items-center justify-center font-mono text-sm animate-pulse"
+                    style={{ color: 'var(--sura-blue)' }}>
+                    Cargando datos...
+                </div>
             ) : (
                 <div className="grid grid-cols-12 gap-6">
                     {/* KPI ROW */}
@@ -296,10 +326,12 @@ export default function DashboardView() {
 
 
                     {/* Main Chart Area */}
-                    <div className="col-span-12 lg:col-span-8 bg-[#111827] border border-gray-800 rounded-lg p-6 flex flex-col">
+                    <div className="col-span-12 lg:col-span-8 rounded-xl p-6 flex flex-col"
+                        style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', boxShadow: '0 1px 4px rgba(0,51,160,0.06)' }}>
                         <div className="flex items-center justify-between mb-6">
-                            <h3 className="text-sm font-medium text-white tracking-wide">DESGLOSE DE EJECUCION DE PRUEBAS</h3>
-                            <span className="text-xs text-gray-500 font-mono text-right">POR CICLO DE PRUEBAS</span>
+                            <h3 className="text-sm font-semibold tracking-wide" style={{ color: 'var(--text-primary)' }}>Desglose de Ejecución de Pruebas</h3>
+                            <span className="text-xs font-mono px-2 py-0.5 rounded"
+                                style={{ color: 'var(--sura-blue)', background: 'var(--bg-blue-tint)' }}>Por Ciclo</span>
                         </div>
                         <StatusPieChart data={filteredData} />
 
@@ -324,22 +356,22 @@ export default function DashboardView() {
                             ];
 
                             return (
-                                <div className="mt-6 border-t border-gray-800 pt-6">
-                                    <h4 className="text-xs font-mono uppercase text-gray-500 mb-4">Detalle por Ciclo</h4>
+                                <div className="mt-6 pt-6" style={{ borderTop: '1px solid var(--border-light)' }}>
+                                    <h4 className="text-xs font-medium uppercase mb-4" style={{ color: 'var(--text-secondary)', letterSpacing: '0.08em' }}>Detalle por Ciclo</h4>
                                     <div className="grid grid-cols-2 gap-x-8 gap-y-4">
                                         {items.map(item => (
                                             <div key={item.label} className="group">
                                                 <div className="flex items-center justify-between mb-1">
-                                                    <span className="text-xs text-gray-400 group-hover:text-white transition-colors flex items-center gap-2">
+                                                    <span className="text-xs flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
                                                         <span style={{ color: item.color }}>{item.icon}</span>
                                                         {item.label}
                                                     </span>
                                                     <div className="flex items-center gap-3">
-                                                        <span className="text-sm font-mono font-bold text-white">{item.value}</span>
-                                                        <span className="text-[10px] font-mono text-gray-500 w-12 text-right">{pct(item.value)}%</span>
+                                                        <span className="text-sm font-mono font-bold" style={{ color: 'var(--text-primary)' }}>{item.value}</span>
+                                                        <span className="text-[10px] font-mono w-12 text-right" style={{ color: 'var(--text-muted)' }}>{pct(item.value)}%</span>
                                                     </div>
                                                 </div>
-                                                <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                                                <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--bg-gray-tint)' }}>
                                                     <div
                                                         className="h-full rounded-full transition-all duration-700"
                                                         style={{
@@ -351,9 +383,9 @@ export default function DashboardView() {
                                             </div>
                                         ))}
                                     </div>
-                                    <div className="mt-4 pt-3 border-t border-gray-800/50 flex justify-between">
-                                        <span className="text-[10px] font-mono uppercase text-gray-600">Total Pruebas</span>
-                                        <span className="text-sm font-mono font-bold text-gray-300">{totalAll}</span>
+                                    <div className="mt-4 pt-3 flex justify-between" style={{ borderTop: '1px solid var(--border-light)' }}>
+                                        <span className="text-[10px] font-mono uppercase" style={{ color: 'var(--text-muted)' }}>Total Ciclos</span>
+                                        <span className="text-sm font-mono font-bold" style={{ color: 'var(--sura-blue-dark)' }}>{totalAll}</span>
                                     </div>
                                 </div>
                             );
@@ -362,42 +394,48 @@ export default function DashboardView() {
 
                     {/* Side Panel: UAT Focus */}
                     <div className="col-span-12 lg:col-span-4 space-y-6">
-                        <div className="bg-[#111827]/50 border border-gray-800 rounded-lg p-6">
-                            <h3 className="text-xs font-mono uppercase text-gray-500 mb-4 border-b border-gray-800 pb-2">Criterios de Calidad (UAT)</h3>
-
+                        <div className="rounded-xl p-6"
+                            style={{ background: 'var(--bg-blue-tint)', border: '1px solid var(--border-blue)' }}>
+                            <h3 className="text-xs font-semibold uppercase mb-4 pb-2"
+                                style={{ color: 'var(--sura-blue)', borderBottom: '1px solid var(--border-blue)', letterSpacing: '0.08em' }}>
+                                Criterios de Calidad (UAT)
+                            </h3>
                             <div className="space-y-4">
-                                <div className="flex justify-between items-center group">
-                                    <span className="text-sm text-gray-400 group-hover:text-white transition-colors">Soluciones Certificadas</span>
-                                    <span className="text-xl font-mono text-emerald-400 font-bold">{kpis?.uat_certified || 0}</span>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Soluciones Certificadas</span>
+                                    <span className="text-xl font-mono font-bold" style={{ color: 'var(--status-green)' }}>{kpis?.uat_certified || 0}</span>
                                 </div>
-                                <div className="flex justify-between items-center group">
-                                    <span className="text-sm text-gray-400 group-hover:text-white transition-colors">Soluciones Devueltas</span>
-                                    <span className="text-xl font-mono text-rose-400 font-bold">{kpis?.uat_returned || 0}</span>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Soluciones Devueltas</span>
+                                    <span className="text-xl font-mono font-bold" style={{ color: 'var(--status-red)' }}>{kpis?.uat_returned || 0}</span>
                                 </div>
-                                <div className="flex justify-between items-center group">
-                                    <span className="text-sm text-gray-400 group-hover:text-white transition-colors">En Proceso</span>
-                                    <span className="text-xl font-mono text-purple-400 font-bold">{kpis?.uat_in_process || 0}</span>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>En Proceso</span>
+                                    <span className="text-xl font-mono font-bold" style={{ color: 'var(--sura-blue)' }}>{kpis?.uat_in_process || 0}</span>
                                 </div>
                             </div>
                         </div>
 
                         {/* Delay Analysis */}
-                        <div className="bg-[#111827] border border-gray-800 rounded-lg p-6">
-                            <h3 className="text-xs font-mono uppercase text-gray-500 mb-4 pb-2 flex items-center gap-2">
-                                <Clock className="w-4 h-4 text-orange-500" />
+                        <div className="rounded-xl p-6"
+                            style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', boxShadow: '0 1px 4px rgba(0,51,160,0.06)' }}>
+                            <h3 className="text-xs font-semibold uppercase mb-4 pb-2 flex items-center gap-2"
+                                style={{ color: 'var(--text-secondary)', borderBottom: '1px solid var(--border-light)', letterSpacing: '0.08em' }}>
+                                <Clock className="w-4 h-4" style={{ color: 'var(--sura-aqua)' }} />
                                 Cumplimiento Entrega (Hito)
                             </h3>
                             <DelayBarChart data={filteredData} />
                         </div>
 
-                        {/* Defect Analysis: Severity & Status — filtered by project */}
-                        <div className="bg-[#111827] border border-gray-800 rounded-lg p-6 flex flex-col gap-6">
+                        {/* Defect Analysis: Severity & Status */}
+                        <div className="rounded-xl p-6 flex flex-col gap-6"
+                            style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', boxShadow: '0 1px 4px rgba(0,51,160,0.06)' }}>
                             <div>
-                                <h3 className="text-xs font-mono uppercase text-gray-500 mb-4">Severidad de Defectos</h3>
+                                <h3 className="text-xs font-semibold uppercase mb-4" style={{ color: 'var(--text-secondary)', letterSpacing: '0.08em' }}>Severidad de Defectos</h3>
                                 <DefectsBarChart data={filteredJiraData} />
                             </div>
-                            <div className="border-t border-gray-800 pt-6">
-                                <h3 className="text-xs font-mono uppercase text-gray-500 mb-4">Estado de Defectos</h3>
+                            <div className="pt-6" style={{ borderTop: '1px solid var(--border-light)' }}>
+                                <h3 className="text-xs font-semibold uppercase mb-4" style={{ color: 'var(--text-secondary)', letterSpacing: '0.08em' }}>Estado de Defectos</h3>
                                 <DefectsStatusChart data={filteredJiraData} />
                             </div>
                         </div>
@@ -407,15 +445,17 @@ export default function DashboardView() {
                     <div className="col-span-12 grid grid-cols-1 md:grid-cols-3 gap-6">
 
                         {/* Velocity */}
-                        <div className="bg-[#111827] border border-gray-800 rounded-lg p-6">
-                            <h3 className="text-xs font-mono uppercase text-gray-500 mb-4">Velocidad de Ejecucion (30 Dias)</h3>
+                        <div className="rounded-xl p-6"
+                            style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', boxShadow: '0 1px 4px rgba(0,51,160,0.06)' }}>
+                            <h3 className="text-xs font-semibold uppercase mb-4" style={{ color: 'var(--text-secondary)', letterSpacing: '0.08em' }}>Velocidad de Ejecución (30 Días)</h3>
                             <VelocityAreaChart data={insights?.velocity || []} />
                         </div>
 
                         {/* Automation */}
-                        <div className="bg-[#111827] border border-gray-800 rounded-lg p-6">
-                            <h3 className="text-xs font-mono uppercase text-gray-500 mb-1">Cobertura de Automatizacion</h3>
-                            <p className="text-[9px] font-mono text-gray-600 mb-3">Regresión Katalon vs Smoke Test Manual</p>
+                        <div className="rounded-xl p-6"
+                            style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', boxShadow: '0 1px 4px rgba(0,51,160,0.06)' }}>
+                            <h3 className="text-xs font-semibold uppercase mb-1" style={{ color: 'var(--text-secondary)', letterSpacing: '0.08em' }}>Cobertura de Automatización</h3>
+                            <p className="text-[9px] font-mono mb-3" style={{ color: 'var(--text-muted)' }}>Regresión Katalon vs Smoke Test Manual</p>
                             <AutomationDonutChart data={[
                                 { type: 'Automatizado', count: 24 },
                                 { type: 'Manual', count: 76 }
@@ -423,30 +463,34 @@ export default function DashboardView() {
                         </div>
 
                         {/* Aging Risks */}
-                        <div className="bg-[#111827] border border-gray-800 rounded-lg p-6">
-                            <h3 className="text-xs font-mono uppercase text-gray-500 mb-4 flex items-center gap-2">
-                                <AlertTriangle className="w-4 h-4 text-amber-500" />
+                        <div className="rounded-xl p-6"
+                            style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', boxShadow: '0 1px 4px rgba(0,51,160,0.06)' }}>
+                            <h3 className="text-xs font-semibold uppercase mb-4 flex items-center gap-2"
+                                style={{ color: 'var(--text-secondary)', letterSpacing: '0.08em' }}>
+                                <AlertTriangle className="w-4 h-4" style={{ color: 'var(--status-amber)' }} />
                                 Top Riesgos (Defectos Antiguos)
                             </h3>
-                            <div className="space-y-3 overflow-y-auto max-h-[220px] scrollbar-thin scrollbar-thumb-gray-700">
+                            <div className="space-y-3 overflow-y-auto max-h-[220px]">
                                 {insights?.aging?.map((bug: any) => (
-                                    <div key={bug.key} className="p-3 bg-gray-900/50 rounded border border-gray-800 hover:border-gray-700 transition-colors">
+                                    <div key={bug.key} className="p-3 rounded-lg transition-colors"
+                                        style={{ background: 'var(--bg-page)', border: '1px solid var(--border-light)' }}>
                                         <div className="flex justify-between items-start mb-1">
-                                            <span className="text-xs font-bold text-blue-400 font-mono">{bug.key}</span>
-                                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-500 font-mono border border-rose-500/20">
-                                                {bug.days_open} Dias
+                                            <span className="text-xs font-bold font-mono" style={{ color: 'var(--sura-blue)' }}>{bug.key}</span>
+                                            <span className="text-[10px] px-1.5 py-0.5 rounded font-mono"
+                                                style={{ background: '#FEE2E2', color: '#DC2626', border: '1px solid #FECACA' }}>
+                                                {bug.days_open} días
                                             </span>
                                         </div>
-                                        <p className="text-xs text-gray-300 line-clamp-2 mb-2">{bug.summary}</p>
+                                        <p className="text-xs line-clamp-2 mb-2" style={{ color: 'var(--text-body)' }}>{bug.summary}</p>
                                         <div className="flex items-center gap-2">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-                                            <span className="text-[10px] text-gray-500 uppercase">{bug.priority}</span>
-                                            <span className="text-[10px] text-gray-600 font-mono ml-auto">{bug.created_date}</span>
+                                            <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--status-red)' }}></span>
+                                            <span className="text-[10px] uppercase" style={{ color: 'var(--text-muted)' }}>{bug.priority}</span>
+                                            <span className="text-[10px] font-mono ml-auto" style={{ color: 'var(--text-muted)' }}>{bug.created_date}</span>
                                         </div>
                                     </div>
                                 ))}
                                 {(!insights?.aging || insights.aging.length === 0) && (
-                                    <div className="text-center py-10 text-gray-600 text-xs font-mono">NO HAY RIESGOS DETECTADOS</div>
+                                    <div className="text-center py-10 text-xs font-mono" style={{ color: 'var(--text-muted)' }}>Sin riesgos detectados</div>
                                 )}
                             </div>
                         </div>

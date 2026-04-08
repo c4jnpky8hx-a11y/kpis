@@ -13,98 +13,106 @@ export default function DetailedTable({ data, type }: DetailedTableProps) {
     const sortedData = [...data].sort((a, b) => new Date(b.month_key).getTime() - new Date(a.month_key).getTime());
 
     return (
-        <div className="bg-[#111827] border border-gray-800 rounded-lg overflow-hidden mt-6">
-            <div className="px-6 py-4 border-b border-gray-800 flex justify-between items-center bg-[#1f2937]/50">
-                <h3 className="text-sm font-medium text-white tracking-wide flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-purple-400" />
-                    DETALLE DE EJECUCION ({type === 'mart' ? 'MART' : 'ASEGURAMIENTO'})
+        <div className="rounded-xl overflow-hidden mt-6"
+            style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', boxShadow: '0 1px 4px rgba(0,51,160,0.06)' }}>
+            <div className="px-6 py-4 flex justify-between items-center"
+                style={{ borderBottom: '1px solid var(--border-light)', background: 'var(--bg-blue-tint)' }}>
+                <h3 className="text-sm font-semibold flex items-center gap-2"
+                    style={{ color: 'var(--sura-blue-dark)' }}>
+                    <FileText className="w-4 h-4" style={{ color: 'var(--sura-blue)' }} />
+                    Detalle de Ejecución ({type === 'mart' ? 'Mart' : 'Aseguramiento'})
                 </h3>
-                <span className="text-xs text-gray-500 font-mono">
-                    {data.length} REGISTROS
+                <span className="text-xs font-mono px-2 py-0.5 rounded"
+                    style={{ color: 'var(--sura-blue)', background: 'rgba(45,109,246,0.08)' }}>
+                    {data.length} registros
                 </span>
             </div>
 
             <div className="overflow-x-auto max-h-[600px]">
                 <table className="w-full text-left border-collapse relative">
-                    <thead className="sticky top-0 bg-[#111827] z-10 shadow-lg">
-                        <tr className="text-gray-400 text-xs uppercase font-mono border-b border-gray-800">
-                            <th className="px-6 py-3 font-medium">Mes</th>
-                            <th className="px-6 py-3 font-medium">Iniciativa / Plan</th>
-                            <th className="px-6 py-3 font-medium">Proyecto</th>
-                            <th className="px-6 py-3 font-medium text-center">Estado</th>
-                            <th className="px-6 py-3 font-medium text-right">Total Tests</th>
-                            <th className="px-6 py-3 font-medium text-right text-green-500">Pasados</th>
-                            <th className="px-6 py-3 font-medium text-right text-rose-500">Defectos</th>
-                            <th className="px-6 py-3 font-medium text-center text-orange-400">Retraso</th>
-                            <th className="px-6 py-3 font-medium">Analistas</th>
+                    <thead className="sticky top-0 z-10" style={{ background: 'var(--bg-page)', boxShadow: '0 1px 0 var(--border-light)' }}>
+                        <tr style={{ borderBottom: '1px solid var(--border-light)' }}>
+                            {['Mes', 'Iniciativa / Plan', 'Proyecto', 'Estado', 'Total Tests', 'Pasados', 'Defectos', 'Retraso', 'Analistas'].map((h, i) => (
+                                <th key={h} className={`px-6 py-3 text-[11px] font-semibold uppercase ${[3,7].includes(i) ? 'text-center' : i >= 4 && i <= 6 ? 'text-right' : ''}`}
+                                    style={{ color: 'var(--text-secondary)', letterSpacing: '0.07em' }}>
+                                    {h}
+                                </th>
+                            ))}
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-800">
+                    <tbody>
                         {sortedData.map((row, idx) => (
-                            <tr key={`${row.plan_id}-${idx}`} className="hover:bg-gray-800/50 transition-colors group">
-                                <td className="px-6 py-3 text-xs text-gray-500 font-mono whitespace-nowrap">
+                            <tr key={`${row.plan_id}-${idx}`} className="transition-colors"
+                                style={{ borderBottom: '1px solid var(--border-light)', background: idx % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-page)' }}
+                                onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-blue-tint)')}
+                                onMouseLeave={e => (e.currentTarget.style.background = idx % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-page)')}>
+                                <td className="px-6 py-3 text-xs font-mono whitespace-nowrap" style={{ color: 'var(--text-muted)' }}>
                                     {row.month_key}
                                 </td>
-                                <td className="px-6 py-3 text-sm text-gray-200 font-medium max-w-[300px]">
+                                <td className="px-6 py-3 text-sm font-medium max-w-[300px]" style={{ color: 'var(--text-primary)' }}>
                                     <div className="flex flex-col">
                                         <span className="truncate" title={row.Iniciativa}>{row.Iniciativa}</span>
-                                        <span className="text-[10px] text-gray-600 font-mono">ID: {row.plan_id}</span>
+                                        <span className="text-[10px] font-mono" style={{ color: 'var(--text-muted)' }}>ID: {row.plan_id}</span>
                                     </div>
                                 </td>
-                                <td className="px-6 py-3 text-xs text-gray-400">
+                                <td className="px-6 py-3 text-xs" style={{ color: 'var(--text-secondary)' }}>
                                     {row.project_name}
                                 </td>
                                 <td className="px-6 py-3 text-center">
                                     {row.Estado_Iniciativa === 'Certificada' && (
-                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-500/10 text-green-500 text-[10px] border border-green-500/20">
-                                            <CheckCircle size={10} /> Certified
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px]"
+                                            style={{ background: '#D1FAE5', color: '#065F46', border: '1px solid #6EE7B7' }}>
+                                            <CheckCircle size={10} /> Certificada
                                         </span>
                                     )}
                                     {row.Estado_Iniciativa === 'En Proceso' && (
-                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 text-[10px] border border-blue-500/20">
-                                            <Clock size={10} /> In Process
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px]"
+                                            style={{ background: 'var(--bg-blue-tint)', color: 'var(--sura-blue)', border: '1px solid var(--border-blue)' }}>
+                                            <Clock size={10} /> En Proceso
                                         </span>
                                     )}
                                     {!row.Estado_Iniciativa && (
-                                        <span className="text-gray-600 text-[10px]">-</span>
+                                        <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>-</span>
                                     )}
                                 </td>
-                                <td className="px-6 py-3 text-sm text-gray-300 text-right font-mono font-medium">
+                                <td className="px-6 py-3 text-sm text-right font-mono font-medium" style={{ color: 'var(--text-body)' }}>
                                     {Number(row.total_tests).toLocaleString()}
                                 </td>
-                                <td className="px-6 py-3 text-sm text-green-400/80 text-right font-mono font-medium">
+                                <td className="px-6 py-3 text-sm text-right font-mono font-medium" style={{ color: '#059669' }}>
                                     {Number(row.total_passed).toLocaleString()}
                                 </td>
                                 <td className="px-6 py-3 text-sm text-right font-mono">
                                     {Number(row.active_defects_proxy) > 0 ? (
-                                        <span className="inline-flex items-center gap-1 text-rose-400 bg-rose-400/10 px-2 py-0.5 rounded border border-rose-400/20">
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs"
+                                            style={{ color: '#DC2626', background: '#FEE2E2', border: '1px solid #FECACA' }}>
                                             <AlertTriangle className="w-3 h-3" />
                                             {row.active_defects_proxy}
                                         </span>
                                     ) : (
-                                        <span className="text-gray-600">-</span>
+                                        <span style={{ color: 'var(--text-muted)' }}>-</span>
                                     )}
                                 </td>
                                 <td className="px-6 py-3 text-sm text-center font-mono">
                                     {row.entrega_desarrollo_tardia === 1 && row.dias_retraso_desarrollo > 0 ? (
-                                        <span className="inline-flex items-center gap-1 text-orange-400 bg-orange-400/10 px-2 py-0.5 rounded border border-orange-400/20" title="Entrega de Desarrollo Tardía">
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs" title="Entrega de Desarrollo Tardía"
+                                            style={{ color: '#D97706', background: '#FEF3C7', border: '1px solid #FDE68A' }}>
                                             <Clock className="w-3 h-3" />
                                             {row.dias_retraso_desarrollo}d
                                         </span>
                                     ) : (
-                                        <span className="text-emerald-500/50 text-[10px]">A Tiempo</span>
+                                        <span className="text-[10px]" style={{ color: '#059669' }}>A Tiempo</span>
                                     )}
                                 </td>
-                                <td className="px-6 py-3 text-xs text-gray-400 max-w-[250px]">
+                                <td className="px-6 py-3 text-xs max-w-[250px]" style={{ color: 'var(--text-secondary)' }}>
                                     {row.analysts ? (
                                         <div className="flex items-start gap-2">
-                                            <Users className="w-3 h-3 mt-0.5 text-purple-500 shrink-0" />
+                                            <Users className="w-3 h-3 mt-0.5 shrink-0" style={{ color: 'var(--sura-blue)' }} />
                                             <span className="line-clamp-2 md:line-clamp-1 group-hover:line-clamp-none transition-all duration-300">
                                                 {row.analysts}
                                             </span>
                                         </div>
                                     ) : (
-                                        <span className="text-gray-600 italic text-[10px]">Sin Asignar</span>
+                                        <span className="italic text-[10px]" style={{ color: 'var(--text-muted)' }}>Sin Asignar</span>
                                     )}
                                 </td>
                             </tr>

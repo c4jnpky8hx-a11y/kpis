@@ -97,11 +97,11 @@ export default function WorkloadChart() {
 
     if (loading) {
         return (
-            <div className="bg-[#111827] border border-gray-800 rounded-lg p-6">
-                <h3 className="text-xs font-mono uppercase text-gray-500 mb-4">
+            <div className="rounded-xl p-6" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)' }}>
+                <h3 className="text-xs font-semibold uppercase mb-4" style={{ color: 'var(--text-secondary)', letterSpacing: '0.08em' }}>
                     Carga de Trabajo por Analista
                 </h3>
-                <div className="flex items-center justify-center h-[300px] text-gray-500 text-sm font-mono">
+                <div className="flex items-center justify-center h-[300px] text-sm" style={{ color: 'var(--sura-blue)' }}>
                     Cargando...
                 </div>
             </div>
@@ -110,52 +110,54 @@ export default function WorkloadChart() {
 
     if (!chartData.length) {
         return (
-            <div className="bg-[#111827] border border-gray-800 rounded-lg p-6">
-                <h3 className="text-xs font-mono uppercase text-gray-500 mb-4">
+            <div className="rounded-xl p-6" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)' }}>
+                <h3 className="text-xs font-semibold uppercase mb-4" style={{ color: 'var(--text-secondary)', letterSpacing: '0.08em' }}>
                     Carga de Trabajo por Analista
                 </h3>
-                <div className="flex items-center justify-center h-[200px] text-gray-600 text-sm font-mono">
+                <div className="flex items-center justify-center h-[200px] text-sm" style={{ color: 'var(--text-muted)' }}>
                     Sin datos de asignación
                 </div>
             </div>
         );
     }
 
-    // Custom tooltip
+    // Custom tooltip — Sura light theme
     const CustomTooltip = ({ active, payload, label }: any) => {
         if (!active || !payload?.length) return null;
         const items = payload.filter((p: any) => p.value > 0);
         const total = items.reduce((s: number, p: any) => s + p.value, 0);
         return (
-            <div className="bg-[#1f2937] border border-gray-700 rounded-lg p-3 shadow-xl text-sm">
-                <p className="font-mono text-white font-bold mb-2">{label}</p>
+            <div style={{
+                background: '#ffffff', border: '1px solid #E2E8F0',
+                borderRadius: '10px', padding: '12px 14px',
+                boxShadow: '0 4px 16px rgba(0,51,160,0.10)', fontSize: '12px'
+            }}>
+                <p style={{ color: '#0033A0', fontWeight: 700, marginBottom: '8px' }}>{label}</p>
                 {items.map((entry: any, i: number) => (
-                    <div key={i} className="flex justify-between gap-4 text-gray-300">
-                        <span className="flex items-center gap-2">
-                            <span
-                                className="w-2.5 h-2.5 rounded-full inline-block"
-                                style={{ backgroundColor: entry.color }}
-                            />
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', color: '#4A6390', marginBottom: '4px' }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: entry.color, display: 'inline-block' }} />
                             {entry.name}
                         </span>
-                        <span className="font-mono font-bold">{entry.value}</span>
+                        <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{entry.value}</span>
                     </div>
                 ))}
-                <div className="border-t border-gray-600 mt-2 pt-2 flex justify-between text-white font-bold">
+                <div style={{ borderTop: '1px solid #E2E8F0', marginTop: '8px', paddingTop: '8px', display: 'flex', justifyContent: 'space-between', color: '#0033A0', fontWeight: 700 }}>
                     <span>Total</span>
-                    <span className="font-mono">{total}</span>
+                    <span style={{ fontFamily: 'var(--font-mono)' }}>{total}</span>
                 </div>
             </div>
         );
     };
 
     return (
-        <div className="bg-[#111827] border border-gray-800 rounded-lg p-6">
+        <div className="rounded-xl p-6"
+            style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', boxShadow: '0 1px 4px rgba(0,51,160,0.06)' }}>
             <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xs font-mono uppercase text-gray-500">
+                <h3 className="text-xs font-semibold uppercase" style={{ color: 'var(--text-secondary)', letterSpacing: '0.08em' }}>
                     Carga de Trabajo por Analista
                 </h3>
-                <span className="text-xs font-mono text-gray-600">
+                <span className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>
                     {chartData.length} analistas · {projects.length} proyectos
                 </span>
             </div>
@@ -166,22 +168,24 @@ export default function WorkloadChart() {
                     layout="vertical"
                     margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                 >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" horizontal={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" horizontal={false} />
                     <XAxis
                         type="number"
-                        tick={{ fill: '#9ca3af', fontSize: 11, fontFamily: 'monospace' }}
-                        axisLine={{ stroke: '#374151' }}
+                        tick={{ fill: '#8499B8', fontSize: 11, fontFamily: 'var(--font-inter)' }}
+                        axisLine={false}
+                        tickLine={false}
                     />
                     <YAxis
                         type="category"
                         dataKey="analyst_name"
                         width={120}
-                        tick={{ fill: '#d1d5db', fontSize: 11, fontFamily: 'monospace' }}
-                        axisLine={{ stroke: '#374151' }}
+                        tick={{ fill: '#4A6390', fontSize: 11, fontFamily: 'var(--font-inter)' }}
+                        axisLine={false}
+                        tickLine={false}
                     />
-                    <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
+                    <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(45,109,246,0.05)' }} />
                     <Legend
-                        wrapperStyle={{ fontSize: 11, fontFamily: 'monospace' }}
+                        wrapperStyle={{ fontSize: 11, fontFamily: 'var(--font-inter)', color: '#4A6390' }}
                         iconType="circle"
                         iconSize={8}
                     />
@@ -198,46 +202,42 @@ export default function WorkloadChart() {
             </ResponsiveContainer>
 
             {/* Detail Table */}
-            <div className="mt-6 overflow-x-auto">
-                <table className="w-full text-xs font-mono">
+            <div className="mt-6 overflow-x-auto" style={{ borderTop: '1px solid var(--border-light)', paddingTop: '16px' }}>
+                <table className="w-full text-xs">
                     <thead>
-                        <tr className="border-b border-gray-800 text-gray-500 uppercase">
-                            <th className="text-left py-2 px-2">Analista</th>
-                            <th className="text-left py-2 px-2">Proyecto</th>
-                            <th className="text-right py-2 px-2">Total</th>
-                            <th className="text-right py-2 px-2">Activos</th>
-                            <th className="text-right py-2 px-2">Pasados</th>
-                            <th className="text-right py-2 px-2">Fallidos</th>
+                        <tr style={{ borderBottom: '1px solid var(--border-light)' }}>
+                            {['Analista', 'Proyecto', 'Total', 'Activos', 'Pasados', 'Fallidos'].map((h, i) => (
+                                <th key={h} className={`py-2 px-2 font-semibold uppercase ${i >= 2 ? 'text-right' : 'text-left'}`}
+                                    style={{ color: 'var(--text-secondary)', fontSize: '10px', letterSpacing: '0.08em' }}>
+                                    {h}
+                                </th>
+                            ))}
                         </tr>
                     </thead>
                     <tbody>
                         {rawData
                             .sort((a, b) => Number(b.total_assigned) - Number(a.total_assigned))
                             .map((row, i) => (
-                                <tr
-                                    key={i}
-                                    className="border-b border-gray-800/50 hover:bg-white/5 transition-colors"
-                                >
-                                    <td className="py-2 px-2 text-gray-300">{row.analyst_name}</td>
+                                <tr key={i} style={{ borderBottom: '1px solid var(--border-light)' }}
+                                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-blue-tint)')}
+                                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                                    <td className="py-2 px-2" style={{ color: 'var(--text-body)' }}>{row.analyst_name}</td>
                                     <td className="py-2 px-2">
-                                        <span className="flex items-center gap-1.5">
-                                            <span
-                                                className="w-2 h-2 rounded-full inline-block"
-                                                style={{ backgroundColor: colorMap[row.project_name] || '#6b7280' }}
-                                            />
-                                            <span className="text-gray-400">{row.project_name}</span>
+                                        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: colorMap[row.project_name] || '#B4B4B5', display: 'inline-block' }} />
+                                            <span style={{ color: 'var(--text-secondary)' }}>{row.project_name}</span>
                                         </span>
                                     </td>
-                                    <td className="py-2 px-2 text-right text-white font-bold">
+                                    <td className="py-2 px-2 text-right font-bold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
                                         {Number(row.total_assigned)}
                                     </td>
-                                    <td className="py-2 px-2 text-right text-amber-400">
+                                    <td className="py-2 px-2 text-right" style={{ color: '#D97706', fontFamily: 'var(--font-mono)' }}>
                                         {Number(row.active_cases)}
                                     </td>
-                                    <td className="py-2 px-2 text-right text-emerald-400">
+                                    <td className="py-2 px-2 text-right" style={{ color: '#059669', fontFamily: 'var(--font-mono)' }}>
                                         {Number(row.passed_cases)}
                                     </td>
-                                    <td className="py-2 px-2 text-right text-rose-400">
+                                    <td className="py-2 px-2 text-right" style={{ color: '#DC2626', fontFamily: 'var(--font-mono)' }}>
                                         {Number(row.failed_cases)}
                                     </td>
                                 </tr>

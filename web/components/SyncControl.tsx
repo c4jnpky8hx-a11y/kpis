@@ -80,35 +80,37 @@ export default function SyncControl() {
         : null;
 
     return (
-        <div className="border-t border-gray-800 pt-6 mt-6">
+        <div className="pt-6 mt-2" style={{ borderTop: '1px solid var(--border-light)' }}>
             <div className="flex flex-col md:flex-row items-center justify-between mb-4 gap-4">
 
                 {/* Sync Audit Status */}
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-[#111827] border border-gray-800 rounded px-4 py-3 w-full md:w-auto shadow-sm">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 rounded-xl px-4 py-3 w-full md:w-auto"
+                    style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', boxShadow: '0 1px 4px rgba(0,51,160,0.06)' }}>
                     <div className="flex flex-col">
-                        <span className="text-[10px] text-gray-500 font-mono uppercase mb-1">Auditoria de Sincronizacion BigQuery</span>
+                        <span className="text-[10px] font-mono uppercase mb-1" style={{ color: 'var(--text-muted)', letterSpacing: '0.1em' }}>
+                            Auditoría de Sincronización BigQuery
+                        </span>
                         <div className="flex items-center gap-2">
                             {hasErrors ? (
-                                <AlertTriangle className="w-4 h-4 text-rose-500" />
+                                <AlertTriangle className="w-4 h-4" style={{ color: '#DC2626' }} />
                             ) : isRunning ? (
-                                <RefreshCw className="w-4 h-4 text-blue-500 animate-spin" />
+                                <RefreshCw className="w-4 h-4 animate-spin" style={{ color: 'var(--sura-blue)' }} />
                             ) : (
-                                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                                <CheckCircle2 className="w-4 h-4" style={{ color: '#059669' }} />
                             )}
-                            <span className={clsx(
-                                "text-xs font-mono font-bold uppercase tracking-wide",
-                                hasErrors ? "text-rose-400" : isRunning ? "text-blue-400" : "text-emerald-400"
-                            )}>
-                                {hasErrors ? 'ERRORES DETECTADOS URGENTE' : isRunning ? 'SINCRONIZANDO...' : 'DATOS ACTUALIZADOS CORRECTAMENTE'}
+                            <span className="text-xs font-mono font-bold uppercase tracking-wide"
+                                style={{ color: hasErrors ? '#DC2626' : isRunning ? 'var(--sura-blue)' : '#059669' }}>
+                                {hasErrors ? 'Errores detectados — revisar urgente' : isRunning ? 'Sincronizando...' : 'Datos actualizados correctamente'}
                             </span>
                         </div>
                     </div>
                     {latestSync && latestSync.getTime() > 0 && (
-                        <div className="sm:ml-4 sm:pl-4 sm:border-l border-gray-700 flex flex-col w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 mt-2 sm:mt-0">
-                            <span className="text-[10px] text-gray-500 font-mono uppercase mb-1 flex items-center gap-1">
-                                <Clock className="w-3 h-3" /> Ultima Carga
+                        <div className="sm:ml-4 sm:pl-4 flex flex-col w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 mt-2 sm:mt-0"
+                            style={{ borderLeft: '1px solid var(--border-light)', borderColor: 'var(--border-light)' }}>
+                            <span className="text-[10px] font-mono uppercase mb-1 flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
+                                <Clock className="w-3 h-3" /> Última carga
                             </span>
-                            <span className="text-xs text-gray-300 font-mono capitalize">
+                            <span className="text-xs font-mono capitalize" style={{ color: 'var(--text-secondary)' }}>
                                 Hace {formatDistanceToNow(latestSync, { locale: es })}
                             </span>
                         </div>
@@ -118,39 +120,49 @@ export default function SyncControl() {
                 <div className="flex items-center w-full md:w-auto justify-end gap-3">
                     <button
                         onClick={() => setShowLogs(!showLogs)}
-                        className="text-gray-500 hover:text-gray-300 font-mono text-[10px] uppercase"
+                        className="font-mono text-[11px] uppercase transition-colors"
+                        style={{ color: 'var(--text-muted)' }}
                     >
                         {showLogs ? 'Ocultar Logs' : 'Ver Logs'}
                     </button>
                     <button
                         onClick={startSync}
                         disabled={syncing || isRunning}
-                        className={clsx(
-                            "flex items-center gap-2 px-4 py-2 rounded text-xs font-mono uppercase tracking-wider transition-all border",
-                            (syncing || isRunning)
-                                ? "bg-blue-500/10 border-blue-500/30 text-blue-400 cursor-not-allowed"
-                                : "bg-gray-800/80 border-gray-700 text-gray-300 hover:bg-gray-700 hover:text-white hover:border-gray-500"
-                        )}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all"
+                        style={(syncing || isRunning) ? {
+                            background: 'var(--bg-blue-tint)',
+                            border: '1px solid var(--border-blue)',
+                            color: 'var(--sura-blue)',
+                            cursor: 'not-allowed'
+                        } : {
+                            background: 'var(--sura-blue)',
+                            border: '1px solid var(--sura-blue)',
+                            color: '#ffffff',
+                            boxShadow: '0 2px 8px rgba(45,109,246,0.25)'
+                        }}
                     >
                         <RefreshCw className={clsx("w-3 h-3", (syncing || isRunning) && "animate-spin")} />
-                        {(syncing || isRunning) ? 'PROCESANDO...' : 'INICIAR SINCRONIZACION'}
+                        {(syncing || isRunning) ? 'Procesando...' : 'Iniciar Sincronización'}
                     </button>
                 </div>
             </div>
 
             {showLogs && (
-                <div className="bg-[#0b0f19] border border-gray-800 rounded p-0 overflow-hidden font-mono text-[10px] shadow-inner mt-4">
-                    <div className="flex items-center justify-between px-3 py-1 bg-gray-900 border-b border-gray-800">
-                        <span className="text-gray-400 flex items-center gap-2">
+                <div className="rounded-xl overflow-hidden font-mono text-[10px] mt-4"
+                    style={{ background: '#F8F8F8', border: '1px solid var(--border-light)' }}>
+                    <div className="flex items-center justify-between px-3 py-2"
+                        style={{ background: 'var(--bg-blue-tint)', borderBottom: '1px solid var(--border-light)' }}>
+                        <span className="flex items-center gap-2" style={{ color: 'var(--sura-blue-dark)' }}>
                             <Terminal className="w-3 h-3" />
-                            SYNC_VERBOSE_LOGS.TXT
+                            sync_verbose_logs.txt
                         </span>
-                        <button onClick={() => setShowLogs(false)} className="text-gray-500 hover:text-rose-400 transition-colors">
+                        <button onClick={() => setShowLogs(false)} className="transition-colors"
+                            style={{ color: 'var(--text-muted)' }}>
                             <X className="w-4 h-4" />
                         </button>
                     </div>
-                    <div className="p-4 h-48 overflow-y-auto text-emerald-500/80 leading-relaxed font-light">
-                        <pre className="whitespace-pre-wrap">{logs || '> Inicializando conexion con el motor de sincronizacion TestRail -> BigQuery...'}</pre>
+                    <div className="p-4 h-48 overflow-y-auto leading-relaxed" style={{ color: '#059669' }}>
+                        <pre className="whitespace-pre-wrap">{logs || '> Inicializando conexión con el motor de sincronización TestRail → BigQuery...'}</pre>
                     </div>
                 </div>
             )}

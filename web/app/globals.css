@@ -1,19 +1,70 @@
 @import "tailwindcss";
 
+/* ── SURA Brand Color System ───────────────────────────────────────────────── */
 :root {
-  --background: #0B0F14;
-  --foreground: #F3F4F6;
-  --card-bg: #111827;
-  --card-border: rgba(255, 255, 255, 0.05);
-  --accent-primary: #3B82F6;
+  /* Primary */
+  --sura-blue:        #2D6DF6;   /* Azul SURA Pantone 285 C */
+  --sura-blue-dark:   #0033A0;   /* Aqua SURA */
+  --sura-aqua:        #00AEC7;   /* Aqua */
+  --sura-yellow:      #E3E829;   /* Amarillo alegre */
+
+  /* Complementary */
+  --sura-periwinkle:  #8A9CD3;   /* Pantone 2114 C */
+  --sura-sky:         #81B1FF;   /* Pantone 284 C */
+  --sura-mint:        #9BE1E9;   /* Pantone 304 C */
+  --sura-lemon:       #ECF0A1;   /* Pantone 461 C */
+  --sura-gray:        #B4B4B5;   /* Pantone 429 C */
+
+  /* Digital backgrounds (from brand book) */
+  --bg-page:          #F8F8F8;   /* Fondo principal — Blanco roto */
+  --bg-card:          #FFFFFF;   /* Tarjetas — Blanco puro */
+  --bg-blue-tint:     #DFEAFF;   /* Tinte azul claro */
+  --bg-aqua-tint:     #D5F5F8;   /* Tinte aqua */
+  --bg-lemon-tint:    #F9FAE1;   /* Tinte amarillo */
+  --bg-gray-tint:     #E5E9EA;   /* Tinte gris */
+
+  /* Text */
+  --text-primary:     #0033A0;   /* Azul oscuro SURA para títulos */
+  --text-body:        #1A2B4A;   /* Azul muy oscuro para cuerpo */
+  --text-secondary:   #4A6390;   /* Azul medio para labels */
+  --text-muted:       #8499B8;   /* Azul apagado para info secundaria */
+
+  /* Borders */
+  --border-light:     #E2E8F0;
+  --border-blue:      rgba(45, 109, 246, 0.2);
+
+  /* Semantic (status) */
+  --status-green:     #22C55E;
+  --status-red:       #EF4444;
+  --status-amber:     #F59E0B;
+  --status-purple:    #8B5CF6;
+
+  /* Legacy aliases (used in Tailwind inline classes) */
+  --background:       var(--bg-page);
+  --foreground:       var(--text-body);
+  --card-bg:          var(--bg-card);
+  --card-border:      var(--border-light);
+  --accent-primary:   var(--sura-blue);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--bg-page);
+  color: var(--text-body);
   font-family: var(--font-inter), sans-serif;
 }
 
 .font-mono {
   font-family: var(--font-mono), monospace;
+}
+
+/* ── Sura scrollbar ───────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-page); }
+::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--sura-blue); }
+
+/* ── Select option styling (light) ───────────────────────────────────────── */
+select option {
+  background: #ffffff;
+  color: var(--text-body);
 }

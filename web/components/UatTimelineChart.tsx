@@ -81,37 +81,43 @@ const CustomTooltip = ({ active, payload }: any) => {
     if (!active || !payload?.length) return null;
     const d = payload[0]?.payload;
     if (!d) return null;
+    const typeColor = d.type === 'Certificada Limpia' ? '#10b981' : d.type === 'Con Incidentes en QA' ? '#F59E0B' : '#8A9CD3';
     return (
-        <div className="bg-[#1f2937] border border-gray-600 rounded-lg p-4 shadow-2xl min-w-[220px] text-xs font-mono">
-            <div className="flex items-center gap-2 mb-3 border-b border-gray-700 pb-2">
-                <span
-                    className="w-3 h-3 rounded-full inline-block"
-                    style={{
-                        backgroundColor:
-                            d.type === 'Certificada Limpia' ? '#10b981' :
-                                d.type === 'Con Incidentes en QA' ? '#f59e0b' : '#6366f1',
-                    }}
-                />
-                <span className="text-white font-bold uppercase tracking-wide">{d.type}</span>
+        <div style={{
+            background: '#ffffff',
+            border: '1px solid #E2E8F0',
+            borderRadius: '10px',
+            padding: '14px 16px',
+            boxShadow: '0 4px 16px rgba(0,51,160,0.12)',
+            minWidth: '220px',
+            fontSize: '12px',
+            fontFamily: 'var(--font-inter)',
+        }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', paddingBottom: '8px', borderBottom: '1px solid #E2E8F0' }}>
+                <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: typeColor, display: 'inline-block' }} />
+                <span style={{ color: '#0033A0', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{d.type}</span>
             </div>
-            <div className="space-y-1.5">
-                <div className="flex justify-between gap-6">
-                    <span className="text-gray-400">Mes</span>
-                    <span className="text-white font-bold">{d.month}</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '24px' }}>
+                    <span style={{ color: '#8499B8' }}>Mes</span>
+                    <span style={{ color: '#0033A0', fontWeight: 700 }}>{d.month}</span>
                 </div>
-                <div className="flex justify-between gap-6">
-                    <span className="text-gray-400">Certificaciones ese mes</span>
-                    <span className="text-white font-bold">{d.total_month}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '24px' }}>
+                    <span style={{ color: '#8499B8' }}>Cert. ese mes</span>
+                    <span style={{ color: '#0033A0', fontWeight: 700 }}>{d.total_month}</span>
                 </div>
                 {d.type !== 'En Proceso' && (
-                    <div className="mt-2 pt-2 border-t border-gray-700">
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${d.type === 'Certificada Limpia'
-                                ? 'bg-emerald-500/20 text-emerald-400'
-                                : 'bg-amber-500/20 text-amber-400'
-                            }`}>
-                            {d.type === 'Certificada Limpia'
-                                ? '✓ Sin incidentes detectados en QA'
-                                : '⚠ Tuvo fallos detectados en QA antes de certificar'}
+                    <div style={{ marginTop: '6px', paddingTop: '6px', borderTop: '1px solid #E2E8F0' }}>
+                        <span style={{
+                            fontSize: '10px',
+                            padding: '2px 8px',
+                            borderRadius: '999px',
+                            fontWeight: 700,
+                            textTransform: 'uppercase',
+                            background: d.type === 'Certificada Limpia' ? '#D1FAE5' : '#FEF3C7',
+                            color: d.type === 'Certificada Limpia' ? '#065F46' : '#92400E',
+                        }}>
+                            {d.type === 'Certificada Limpia' ? '✓ Sin incidentes en QA' : '⚠ Con fallos previos en QA'}
                         </span>
                     </div>
                 )}
@@ -125,8 +131,9 @@ export default function UatTimelineChart({ data }: Props) {
 
     if (!data || data.length === 0) {
         return (
-            <div className="h-64 flex items-center justify-center text-gray-500 font-mono text-xs border border-gray-800 border-dashed rounded bg-[#111827]/50">
-                NO HAY DATOS HISTÓRICOS DE UAT
+            <div className="h-64 flex items-center justify-center text-xs border-dashed rounded-xl"
+                style={{ color: 'var(--text-muted)', border: '2px dashed var(--border-light)', background: 'var(--bg-page)' }}>
+                Sin datos históricos de UAT
             </div>
         );
     }
@@ -144,35 +151,35 @@ export default function UatTimelineChart({ data }: Props) {
     const formatXTick = (idx: number) => sorted[idx]?.month_key || '';
 
     return (
-        <div className="bg-[#111827] border border-gray-800 rounded-lg p-6 w-full">
+        <div className="rounded-xl p-6 w-full"
+            style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', boxShadow: '0 1px 4px rgba(0,51,160,0.06)' }}>
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between md:items-start mb-6">
                 <div>
-                    <h3 className="text-sm font-medium text-white tracking-wide">
-                        EVOLUCIÓN DE CERTIFICACIONES UAT
+                    <h3 className="text-sm font-semibold tracking-wide" style={{ color: 'var(--text-primary)' }}>
+                        Evolución de Certificaciones UAT
                     </h3>
-                    <p className="text-[10px] font-mono text-gray-500 mt-1 uppercase">
-                        Dispersión temporal de certificaciones · Cada punto = 1 solución certificada
+                    <p className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                        Dispersión temporal · Cada punto = 1 solución certificada
                     </p>
                 </div>
 
                 {/* Summary Stats */}
-                <div className="flex items-center gap-6 mt-4 md:mt-0">
-                    <div className="text-center">
-                        <div className="text-2xl font-mono font-bold text-emerald-400">{totalClean}</div>
-                        <div className="text-[9px] font-mono text-gray-500 uppercase">Limpias</div>
-                    </div>
-                    <div className="text-center">
-                        <div className="text-2xl font-mono font-bold text-amber-400">{defectPoints.length}</div>
-                        <div className="text-[9px] font-mono text-gray-500 uppercase">Con Incidentes</div>
-                    </div>
-                    <div className="text-center">
-                        <div className="text-2xl font-mono font-bold text-indigo-400">{inProcessPoints.length}</div>
-                        <div className="text-[9px] font-mono text-gray-500 uppercase">En Proceso</div>
-                    </div>
-                    <div className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-center">
-                        <div className="text-xl font-mono font-bold text-white">{qualityRate}%</div>
-                        <div className="text-[9px] font-mono text-gray-500 uppercase">Calidad</div>
+                <div className="flex items-center gap-4 mt-4 md:mt-0">
+                    {[
+                        { label: 'Limpias', value: totalClean, color: '#059669' },
+                        { label: 'Con Incidentes', value: defectPoints.length, color: '#D97706' },
+                        { label: 'En Proceso', value: inProcessPoints.length, color: '#8A9CD3' },
+                    ].map(s => (
+                        <div key={s.label} className="text-center">
+                            <div className="text-2xl font-mono font-bold" style={{ color: s.color }}>{s.value}</div>
+                            <div className="text-[9px] uppercase" style={{ color: 'var(--text-muted)', letterSpacing: '0.08em' }}>{s.label}</div>
+                        </div>
+                    ))}
+                    <div className="text-center px-3 py-2 rounded-lg"
+                        style={{ background: 'var(--bg-blue-tint)', border: '1px solid var(--border-blue)' }}>
+                        <div className="text-xl font-mono font-bold" style={{ color: 'var(--sura-blue-dark)' }}>{qualityRate}%</div>
+                        <div className="text-[9px] uppercase" style={{ color: 'var(--text-muted)', letterSpacing: '0.08em' }}>Calidad</div>
                     </div>
                 </div>
             </div>
@@ -181,16 +188,22 @@ export default function UatTimelineChart({ data }: Props) {
             <div className="flex items-center gap-3 mb-4 flex-wrap">
                 {[
                     { id: 'clean', label: 'Limpias (Sin Defectos)', color: '#10b981', key: 'Certificada Limpia' },
-                    { id: 'defect', label: 'Con Incidentes en QA', color: '#f59e0b', key: 'Con Incidentes en QA' },
-                    { id: 'process', label: 'En Proceso', color: '#6366f1', key: 'En Proceso' },
+                    { id: 'defect', label: 'Con Incidentes en QA', color: '#F59E0B', key: 'Con Incidentes en QA' },
+                    { id: 'process', label: 'En Proceso', color: '#8A9CD3', key: 'En Proceso' },
                 ].map(item => (
                     <button
                         key={item.id}
                         onClick={() => setHighlightType(highlightType === item.key ? null : item.key)}
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded border text-[10px] font-mono uppercase transition-all ${highlightType === item.key
-                                ? 'border-white/50 bg-white/10 text-white'
-                                : 'border-gray-700 bg-transparent text-gray-400 hover:border-gray-500 hover:text-gray-300'
-                            }`}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-medium uppercase transition-all"
+                        style={highlightType === item.key ? {
+                            border: `1px solid ${item.color}`,
+                            background: `${item.color}18`,
+                            color: item.color
+                        } : {
+                            border: '1px solid var(--border-light)',
+                            background: 'var(--bg-page)',
+                            color: 'var(--text-secondary)'
+                        }}
                     >
                         <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: item.color }} />
                         {item.label}
@@ -199,7 +212,8 @@ export default function UatTimelineChart({ data }: Props) {
                 {highlightType && (
                     <button
                         onClick={() => setHighlightType(null)}
-                        className="text-[10px] font-mono text-gray-600 hover:text-gray-400 underline"
+                        className="text-[10px] underline"
+                        style={{ color: 'var(--text-muted)' }}
                     >
                         Ver todo
                     </button>
@@ -210,16 +224,16 @@ export default function UatTimelineChart({ data }: Props) {
             <div className="h-[320px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                     <ScatterChart margin={{ top: 20, right: 30, left: 0, bottom: 20 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+                        <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
                         <XAxis
                             type="number"
                             dataKey="x"
                             domain={[-0.5, sorted.length - 0.5]}
                             ticks={xTicks}
                             tickFormatter={formatXTick}
-                            stroke="#4B5563"
+                            stroke="#8499B8"
                             fontSize={10}
-                            fontFamily="monospace"
+                            fontFamily="var(--font-inter)"
                             tickMargin={8}
                             axisLine={false}
                             tickLine={false}
@@ -228,27 +242,27 @@ export default function UatTimelineChart({ data }: Props) {
                             type="number"
                             dataKey="y"
                             domain={[0, 'dataMax + 1']}
-                            stroke="#4B5563"
+                            stroke="#8499B8"
                             fontSize={10}
-                            fontFamily="monospace"
+                            fontFamily="var(--font-inter)"
                             axisLine={false}
                             tickLine={false}
                             label={{
                                 value: 'Certificaciones',
                                 angle: -90,
                                 position: 'insideLeft',
-                                fill: '#6B7280',
+                                fill: '#8499B8',
                                 fontSize: 10,
-                                fontFamily: 'monospace',
+                                fontFamily: 'var(--font-inter)',
                             }}
                             allowDecimals={false}
                         />
                         <ZAxis dataKey="z" range={[120, 400]} />
-                        <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3', stroke: '#374151' }} />
+                        <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3', stroke: '#DFEAFF' }} />
 
                         {/* Reference lines between months */}
                         {xTicks.slice(0, -1).map((x) => (
-                            <ReferenceLine key={x} x={x + 0.5} stroke="#1f2937" strokeDasharray="2 4" />
+                            <ReferenceLine key={x} x={x + 0.5} stroke="#E2E8F0" strokeDasharray="2 4" />
                         ))}
 
                         {/* Clean certifications */}
@@ -293,10 +307,11 @@ export default function UatTimelineChart({ data }: Props) {
             </div>
 
             {/* Footnote */}
-            <p className="text-[9px] font-mono text-gray-600 mt-3 text-center uppercase tracking-wider">
-                ● Círculo Verde = Certificación limpia &nbsp;|&nbsp;
-                ▲ Triángulo Ámbar = Con incidentes detectados en QA &nbsp;|&nbsp;
-                ■ Cuadro Índigo = En Proceso
+            <p className="text-[9px] mt-3 text-center uppercase tracking-wider"
+                style={{ color: 'var(--text-muted)', letterSpacing: '0.08em' }}>
+                ● Verde = Certificación limpia &nbsp;|&nbsp;
+                ▲ Ámbar = Con incidentes en QA &nbsp;|&nbsp;
+                ■ Azul = En Proceso
             </p>
         </div>
     );
