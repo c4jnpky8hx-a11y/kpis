@@ -11,25 +11,44 @@ class SyncEngine:
     def __init__(self):
         self.project_id = os.environ.get("GCP_PROJECT_ID")
         self.bq_dataset = os.environ.get("BQ_DATASET")
-        
-        # Fetch secrets
-        self.tr_base_url = self._get_secret("testrail_url")
-        self.tr_user = self._get_secret("testrail_user")
-        self.tr_api_key = self._get_secret("testrail_api_key")
-        
-        self.tr_client = TestRailClient(self.tr_base_url, self.tr_user, self.tr_api_key)
+
         self.bq_client = BigQueryClient(self.project_id, self.bq_dataset)
+
+        # Ensure Jira env vars are set from Secret Manager if not already
+        for secret_key in ['JIRA_EMAIL', 'JIRA_TOKEN']:
+            if not os.environ.get(secret_key):
+                val = self._get_secret(secret_key)
+                if val:
+                    os.environ[secret_key] = val
+
         self.jira_client = JiraClient()
 
+        # Lazy init TestRail client (may not have secrets in all environments)
+        self._tr_client = None
+
+    @property
+    def tr_client(self):
+        if self._tr_client is None:
+            tr_base_url = self._get_secret("testrail_url")
+            tr_user = self._get_secret("testrail_user")
+            tr_api_key = self._get_secret("testrail_api_key")
+            if not tr_base_url:
+                raise ValueError("TestRail URL not configured (secret TESTRAIL_URL not found)")
+            self._tr_client = TestRailClient(tr_base_url, tr_user, tr_api_key)
+        return self._tr_client
+
     def _get_secret(self, secret_id):
-        try:
-            client = secretmanager.SecretManagerServiceClient()
-            name = f"projects/{self.project_id}/secrets/{secret_id.upper()}/versions/latest"
-            response = client.access_secret_version(request={"name": name})
-            return response.payload.data.decode("UTF-8")
-        except Exception:
-            # Fallback to env vars (local dev or if auth fails)
-            return os.environ.get(secret_id.upper())
+        # Try Secret Manager with both original case and uppercase
+        for name_variant in [secret_id, secret_id.upper(), secret_id.lower()]:
+            try:
+                client = secretmanager.SecretManagerServiceClient()
+                name = f"projects/{self.project_id}/secrets/{name_variant}/versions/latest"
+                response = client.access_secret_version(request={"name": name})
+                return response.payload.data.decode("UTF-8")
+            except Exception:
+                continue
+        # Fallback to env vars
+        return os.environ.get(secret_id.upper()) or os.environ.get(secret_id)
 
     def run_sync(self, entity):
         logger.info(f"Starting sync for {entity}")
@@ -229,21 +248,20 @@ class SyncEngine:
         return {"status": "success", "count": len(users)}
 
     def _sync_tests(self):
-        # Optimized to only sync tests for Project 23 to avoid timeouts
         projects = self.tr_client.get_projects()
         total = 0
-        
+        skipped = []
+
         for project in projects:
-            # Temporary Fix: Limit to Project 23 (Verification) and 12 (Production)
-            if project['id'] not in [12, 23, 4, 8]:
+            if project['id'] not in [1, 12, 23, 4, 8]:
                 continue
 
-            query = f"SELECT id FROM `{self.bq_dataset}.raw_runs` WHERE project_id = {project['id']}"
+            query = f"SELECT DISTINCT id FROM `{self.bq_dataset}.raw_runs` WHERE project_id = {project['id']}"
             query_job = self.bq_client.client.query(query)
             run_ids = [row.id for row in query_job]
-            
+
             logger.info(f"Syncing tests for Project {project['id']} ({len(run_ids)} runs)")
-            
+
             for run_id in run_ids:
                 try:
                     tests = self.tr_client.get_tests(run_id)
@@ -251,24 +269,29 @@ class SyncEngine:
                         self.bq_client.insert_rows("raw_tests", tests)
                         total += len(tests)
                 except Exception as e:
-                    logger.warning(f"Failed to sync tests for run {run_id}: {e}")
+                    logger.warning(f"Skipping tests for run {run_id}: {e}")
+                    skipped.append(run_id)
                     continue
-        
-        return {"status": "success", "count": total}
+
+        if skipped:
+            logger.info(f"Skipped {len(skipped)} runs due to errors: {skipped[:10]}")
+        return {"status": "success", "count": total, "skipped_runs": len(skipped)}
 
     def _sync_results(self):
         projects = self.tr_client.get_projects()
         total = 0
-        
+        skipped = []
+
         for project in projects:
-            # Temporary Fix: Limit to Project 23 (Verification) and 12 (Production)
-            if project['id'] not in [12, 23, 4, 8]:
+            if project['id'] not in [1, 12, 23, 4, 8]:
                 continue
 
-            query = f"SELECT id FROM `{self.bq_dataset}.raw_runs` WHERE project_id = {project['id']}"
+            query = f"SELECT DISTINCT id FROM `{self.bq_dataset}.raw_runs` WHERE project_id = {project['id']}"
             query_job = self.bq_client.client.query(query)
             run_ids = [row.id for row in query_job]
-            
+
+            logger.info(f"Syncing results for Project {project['id']} ({len(run_ids)} runs)")
+
             for run_id in run_ids:
                 try:
                     results = self.tr_client.get_results(run_id)
@@ -278,24 +301,27 @@ class SyncEngine:
                             for key, value in result.items():
                                 if key.startswith('custom_'):
                                     custom_fields[key] = value
-                            
+
                             if custom_fields:
                                 import json
                                 result['custom_fields'] = json.dumps(custom_fields)
-                        
+
                         self.bq_client.insert_rows("raw_results", results)
                         total += len(results)
                 except Exception as e:
-                    logger.warning(f"Failed to sync results for run {run_id}: {e}")
+                    logger.warning(f"Skipping results for run {run_id}: {e}")
+                    skipped.append(run_id)
                     continue
-                    
-        return {"status": "success", "count": total}
+
+        if skipped:
+            logger.info(f"Skipped {len(skipped)} runs due to errors: {skipped[:10]}")
+        return {"status": "success", "count": total, "skipped_runs": len(skipped)}
 
     def sync_jira(self):
         """
         Sync Jira issues for Project CM.
         """
-        jql = "project = CM AND issuetype = Defecto_TestRail ORDER BY updated DESC"
+        jql = "project = CM ORDER BY updated DESC"
         batch_size = 100
         batch = []
         total_synced = 0

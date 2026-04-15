@@ -47,19 +47,30 @@ run_defects_jira AS (
   JOIN `testrail_kpis.dedup_tests` t ON r.test_id = t.id
   LEFT JOIN UNNEST(REGEXP_EXTRACT_ALL(r.defects, r'(CM-\d+)')) as defect_key
   JOIN `testrail_kpis.raw_jira_issues` j ON defect_key = j.key
-    AND (j.issue_type = 'Defecto_TestRail' OR j.issue_type IS NULL) -- Only count Defecto_TestRail type. IS NULL for backward compat rows before column was added but the correct filter is = 'Defecto_TestRail'
+    AND j.issue_type IN ('Defecto_TestRail', 'Defecto-No-Productivo')
   WHERE r.defects IS NOT NULL AND r.defects != ''
-    AND j.issue_type = 'Defecto_TestRail'
+    AND j.issue_type IN ('Defecto_TestRail', 'Defecto-No-Productivo')
   GROUP BY 1
 ),
 
+-- Pre-compute explicit plan start dates
+plan_start_dates AS (
+  SELECT
+    id as plan_id,
+    COALESCE(
+      SAFE.PARSE_TIMESTAMP('%Y-%m-%d', JSON_VALUE(custom_fields, '$.custom_fecha_de_inicio')),
+      SAFE.PARSE_TIMESTAMP('%Y-%m-%d', JSON_VALUE(custom_fields, '$.custom_fechainicio'))
+    ) as explicit_start
+  FROM `testrail_kpis.dedup_plans`
+),
+
 run_stats AS (
-  SELECT 
+  SELECT
     r.plan_id,
     r.run_id,
     r.month_key,
     r.project_id,
-    
+
     -- Status Counts
     COUNTIF(t.status_id = 1) as passed_count,
     COUNTIF(t.status_id = 2) as blocked_count,
@@ -69,11 +80,19 @@ run_stats AS (
     COUNTIF(t.status_id = 3) as untested_count,
     COUNT(t.id) as total_tests,
     
-    -- Run-Level Execution Status (Failed > Blocked > In Prog > Passed)
-    CASE 
+    -- Run-Level Execution Status (Failed > Blocked > Certified > Backlog > Pendiente > In Progress)
+    CASE
       WHEN COUNTIF(t.status_id IN (4, 5)) > 0 THEN 'Failed'
       WHEN COUNTIF(t.status_id = 2) > 0 THEN 'Blocked'
       WHEN COUNT(t.id) > 0 AND COUNTIF(t.status_id = 1) = COUNT(t.id) THEN 'Passed'
+      WHEN COUNT(t.id) > 0
+        AND COUNTIF(t.status_id = 1) = 0 AND COUNTIF(t.status_id IN (4, 5)) = 0
+        AND COUNTIF(t.status_id = 2) = 0 AND COUNTIF(t.status_id = 6) = 0
+        AND MAX(psd.explicit_start) IS NOT NULL
+        AND MAX(psd.explicit_start) > CURRENT_TIMESTAMP() THEN 'Backlog'
+      WHEN COUNT(t.id) > 0
+        AND COUNTIF(t.status_id = 1) = 0 AND COUNTIF(t.status_id IN (4, 5)) = 0
+        AND COUNTIF(t.status_id = 2) = 0 AND COUNTIF(t.status_id = 6) = 0 THEN 'Pending'
       WHEN COUNT(t.id) > 0 THEN 'In Progress'
       ELSE 'Untested'
     END as run_status,
@@ -134,20 +153,60 @@ run_stats AS (
     
   FROM `testrail_kpis.stg_Runs` r
   LEFT JOIN `testrail_kpis.dedup_tests` t ON r.run_id = t.run_id
+  LEFT JOIN plan_start_dates psd ON r.plan_id = psd.plan_id
   LEFT JOIN run_defects_priority rdp ON r.run_id = rdp.run_id
   LEFT JOIN run_defects_jira rdj ON r.run_id = rdj.run_id
-  GROUP BY 1, 2, 3, 4
+  GROUP BY r.plan_id, r.run_id, r.month_key, r.project_id
 ),
 
--- 3. Plan Aggregates
+-- 3. Plan Aggregates (Including Plans with 0 runs)
+plan_base AS (
+  SELECT
+    p.id as plan_id,
+    p.name as plan_name,
+    p.project_id,
+    proj.name as project_name,
+    COALESCE(
+      JSON_VALUE(p.custom_fields, '$.custom_acta_de_certificacin'),
+      JSON_VALUE(p.custom_fields, '$.custom_acta_certificacion')
+    ) as acta_certificacion,
+    -- Priority: external_plan_dates (adjusted) > custom_fecha_de_inicio > created_on
+    COALESCE(
+      TIMESTAMP(epd.external_start_date),
+      SAFE.PARSE_TIMESTAMP('%Y-%m-%d', JSON_VALUE(p.custom_fields, '$.custom_fecha_de_inicio')),
+      SAFE.PARSE_TIMESTAMP('%Y-%m-%d', JSON_VALUE(p.custom_fields, '$.custom_fechainicio')),
+      p.created_on
+    ) as plan_start_date,
+    COALESCE(
+      SAFE.PARSE_TIMESTAMP('%Y-%m-%d', JSON_VALUE(p.custom_fields, '$.custom_fecha_de_finalizacion')),
+      SAFE.PARSE_TIMESTAMP('%Y-%m-%d', JSON_VALUE(p.custom_fields, '$.custom_fechafinal')),
+      p.completed_on
+    ) as plan_due_date,
+    FORMAT_TIMESTAMP('%Y-%m', COALESCE(
+      TIMESTAMP(epd.external_start_date),
+      SAFE.PARSE_TIMESTAMP('%Y-%m-%d', JSON_VALUE(p.custom_fields, '$.custom_fecha_de_inicio')),
+      SAFE.PARSE_TIMESTAMP('%Y-%m-%d', JSON_VALUE(p.custom_fields, '$.custom_fechainicio')),
+      p.created_on
+    )) as month_key,
+    COALESCE(p.is_completed, FALSE) as plan_is_completed
+  FROM `testrail_kpis.dedup_plans` p
+  JOIN (
+    SELECT * EXCEPT(rn) FROM (
+      SELECT *, ROW_NUMBER() OVER(PARTITION BY id ORDER BY _extracted_at DESC) as rn FROM `testrail_kpis.raw_projects`
+    ) WHERE rn = 1
+  ) proj ON p.project_id = proj.id
+  LEFT JOIN `testrail_kpis.external_plan_dates` epd ON p.id = epd.plan_id
+  WHERE proj.is_completed = FALSE
+),
+
 plan_aggs AS (
   SELECT
-    COALESCE(r.plan_id, r.run_id) as plan_id,
-    COALESCE(r.plan_name, r.run_name) as plan_name,
-    r.month_key,
-    r.project_id,
-    proj.name as project_name, -- Added Project Name for filtering
-    r.acta_certificacion, 
+    pb.plan_id,
+    pb.plan_name,
+    pb.month_key,
+    pb.project_id,
+    pb.project_name,
+    pb.acta_certificacion, 
     
     -- Aggregated Counts
     SUM(rs.passed_count) as total_passed,
@@ -166,11 +225,13 @@ plan_aggs AS (
     COUNTIF(rs.run_status = 'Passed') as runs_passed,
     COUNTIF(rs.run_status = 'In Progress') as runs_in_progress,
     COUNTIF(rs.run_status = 'Untested') as runs_untested,
-    
+    COUNTIF(rs.run_status = 'Backlog') as runs_backlog,
+    COUNTIF(rs.run_status = 'Pending') as runs_pending,
+
     -- Jira Aggregates
     SUM(rs.jira_defects_count) as total_jira_defects,
     SUM(rs.jira_defects_closed) as total_jira_closed,
-    SUM(rs.jira_defects_active) as total_jira_open, -- Mapped to 'active'
+    SUM(rs.jira_defects_active) as total_jira_open,
     AVG(rs.avg_jira_defect_age) as avg_jira_defect_age,
     
     -- Jira Status
@@ -178,22 +239,22 @@ plan_aggs AS (
     SUM(rs.status_in_progress) as total_status_in_progress,
     SUM(rs.status_open) as total_status_open,
     
-    -- Jira Severity (Priority)
+    -- Jira Severity
     SUM(rs.severity_critical) as total_severity_critical,
     SUM(rs.severity_high) as total_severity_high,
     SUM(rs.severity_medium) as total_severity_medium,
     SUM(rs.severity_low) as total_severity_low,
     
-    -- UAT Aggregates (Sum of Flags)
+    -- UAT Aggregates
     SUM(rs.is_uat_returned) as total_uat_returned,
     SUM(rs.is_uat_certified) as total_uat_certified,
     SUM(rs.is_uat_signed) as total_uat_signed,
     SUM(rs.is_uat_in_process) as total_uat_in_process,
     
-    -- Active Defects (Proxy: Failed Cases as per User Request until Jira Integration)
-    SUM(IF(r.is_completed_run = FALSE, rs.failed_count, 0)) as active_defects_proxy,
+    -- Active Defects Proxy
+    SUM(IF(pb.plan_is_completed = FALSE, rs.failed_count, 0)) as active_defects_proxy,
     
-    -- On Time Metrics
+    -- On Time Metrics (From Runs)
     SUM(r.on_time_to_qa) as on_time_to_qa_count,
     SUM(r.on_time_from_qa) as on_time_from_qa_count,
     COUNT(r.run_id) as total_runs,
@@ -205,37 +266,20 @@ plan_aggs AS (
     MAX(r.entrega_desarrollo_tardia) as entrega_desarrollo_tardia,
     
     -- Plan Completion Status
-    MAX(COALESCE(p.is_completed, r.is_completed_run)) as plan_is_completed,
+    MAX(pb.plan_is_completed) as plan_is_completed,
+    COALESCE(MIN(CAST(r.is_completed_run AS INT64)), 0) as all_runs_completed,
     
     -- Dates
-    MAX(r.eff_plan_start_on) as plan_start_date,
-    MAX(r.eff_plan_due_on) as plan_due_date,
+    MAX(pb.plan_start_date) as plan_start_date,
+    MAX(pb.plan_due_date) as plan_due_date,
     
     -- Analysts
     STRING_AGG(DISTINCT u.name, ', ' ORDER BY u.name) as analysts
     
-  FROM `testrail_kpis.stg_Runs` r
-  LEFT JOIN `testrail_kpis.dedup_plans` p ON r.plan_id = p.id
+  FROM plan_base pb
+  LEFT JOIN `testrail_kpis.stg_Runs` r ON pb.plan_id = r.plan_id
   LEFT JOIN run_stats rs ON r.run_id = rs.run_id
-  -- Join with Projects to check for closed status
-  JOIN (
-    SELECT * EXCEPT(rn) FROM (
-      SELECT *, ROW_NUMBER() OVER(PARTITION BY id ORDER BY _extracted_at DESC) as rn FROM `testrail_kpis.raw_projects`
-    ) WHERE rn = 1
-  ) proj ON r.project_id = proj.id
   LEFT JOIN `testrail_kpis.raw_users` u ON r.assignedto_id = u.id
-  
-  -- FILTER: 
-  -- Include Project 12 (UAT - Repositorio UAT)
-  -- Include Project 21 (Automatizaciones)
-  -- Include All other Active Projects EXCEPT exclusion list AND Closed Projects
-  WHERE 
-    r.project_id = 12 
-    OR r.project_id = 21
-    OR (
-        r.project_id NOT IN (1, 7, 9, 12, 17, 18, 19, 21, 23) 
-        AND proj.is_completed = FALSE 
-       )
   GROUP BY 1, 2, 3, 4, 5, 6
 )
 
@@ -246,15 +290,16 @@ SELECT
   project_id,
   project_name,
   
-  -- 1. Iniciativas Certificadas / En Proceso (Excluding UAT - Project 12)
+  -- 1. Iniciativas Certificadas / En Proceso
   CASE 
-    WHEN project_id = 12 THEN NULL
-    WHEN plan_is_completed OR (total_tests > 0 AND total_passed = total_tests) THEN 'Certificada'
+    WHEN plan_start_date IS NULL THEN 'Backlog'
+    WHEN all_runs_completed = 1 OR plan_is_completed OR (total_tests > 0 AND total_passed = total_tests) OR (total_tests = 0 AND total_runs > 0) THEN 'Certificada'
     ELSE 'En Proceso'
   END as Estado_Iniciativa,
   
-  IF(project_id != 12 AND (plan_is_completed OR (total_tests > 0 AND total_passed = total_tests)), 1, 0) as is_certified,
-  IF(project_id != 12 AND NOT (plan_is_completed OR (total_tests > 0 AND total_passed = total_tests)), 1, 0) as is_in_process,
+  IF(all_runs_completed = 1 OR plan_is_completed OR (total_tests > 0 AND total_passed = total_tests) OR (total_tests = 0 AND total_runs > 0), 1, 0) as is_certified,
+  IF(plan_start_date IS NOT NULL AND NOT (all_runs_completed = 1 OR plan_is_completed OR (total_tests > 0 AND total_passed = total_tests) OR (total_tests = 0 AND total_runs > 0)), 1, 0) as is_in_process,
+  IF(plan_start_date IS NULL, 1, 0) as is_backlog,
   
   -- 2. UAT Metrics (Project 4 Only)
   -- Soluciones Devueltas
@@ -315,6 +360,8 @@ SELECT
   IF(project_id NOT IN (12, 21), runs_passed, 0) as runs_passed,
   IF(project_id NOT IN (12, 21), runs_in_progress, 0) as runs_in_progress,
   IF(project_id NOT IN (12, 21), runs_untested, 0) as runs_untested,
+  IF(project_id NOT IN (12, 21), runs_backlog, 0) as runs_backlog,
+  IF(project_id NOT IN (12, 21), runs_pending, 0) as runs_pending,
 
   -- Delayed Delivery (Entrega Desarrollo Tardia)
   IF(project_id NOT IN (12, 21), dias_retraso_desarrollo, NULL) as dias_retraso_desarrollo,

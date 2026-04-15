@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
                 DATE_DIFF(CURRENT_DATE(), DATE(created), DAY) as days_open
             FROM \`testrail_kpis.raw_jira_issues\`
             WHERE status NOT IN ('Done', 'Closed', 'Resolved', 'Terminado', 'Cerrado', 'Cancelado', 'Mitigado')
-              AND (issue_type = 'Defecto_TestRail' OR issue_type IS NULL)
+              AND issue_type IN ('Defecto_TestRail', 'Defecto-No-Productivo')
             ORDER BY created ASC
             LIMIT 5
         `;

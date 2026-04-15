@@ -44,7 +44,14 @@ interface DemandRow {
     analyst_names: string;
 }
 
-export default function ProjectDemandChart() {
+interface FilterProps {
+    excludedProjects?: Set<string>;
+    selectedProject?: string;
+    selectedYear?: string;
+    selectedMonth?: string;
+}
+
+export default function ProjectDemandChart({ excludedProjects = new Set<string>(), selectedProject = 'All', selectedYear: dashYear = 'All', selectedMonth: dashMonth = 'All' }: FilterProps) {
     const [rawData, setRawData] = useState<DemandRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedYear, setSelectedYear] = useState<string>('all');
@@ -59,18 +66,28 @@ export default function ProjectDemandChart() {
             .catch(() => setLoading(false));
     }, []);
 
+    const visibleData = useMemo(() => {
+        return rawData.filter(row => {
+            if (excludedProjects.has(String(row.project_id))) return false;
+            if (selectedProject !== 'All' && String(row.project_id) !== selectedProject) return false;
+            if (dashYear !== 'All' && row.month_key && !row.month_key.startsWith(dashYear)) return false;
+            if (dashMonth !== 'All' && row.month_key !== dashMonth) return false;
+            return true;
+        });
+    }, [rawData, excludedProjects, selectedProject, dashYear, dashMonth]);
+
     // Available years for filter
     const years = useMemo(() => {
         const ySet = new Set<number>();
-        rawData.forEach((r) => ySet.add(Number(r.year)));
+        visibleData.forEach((r) => ySet.add(Number(r.year)));
         return Array.from(ySet).sort();
-    }, [rawData]);
+    }, [visibleData]);
 
     // Filter by year
     const filteredData = useMemo(() => {
-        if (selectedYear === 'all') return rawData;
-        return rawData.filter((r) => String(r.year) === selectedYear);
-    }, [rawData, selectedYear]);
+        if (selectedYear === 'all') return visibleData;
+        return visibleData.filter((r) => String(r.year) === selectedYear);
+    }, [visibleData, selectedYear]);
 
     // Pivot: one row per month_key, columns = project analyst_count
     const { chartData, projects } = useMemo(() => {

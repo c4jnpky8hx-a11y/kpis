@@ -1,3 +1,4 @@
+CREATE OR REPLACE VIEW `testrail_kpis.jira_defects_summary` AS
 WITH linked_info AS (
   SELECT DISTINCT
     key as extracted_key,
@@ -34,7 +35,13 @@ SELECT
   STRING_AGG(DISTINCT li.plan_name, ', ') as linked_plans,
   STRING_AGG(DISTINCT li.project_name, ', ') as linked_projects
 
-FROM `testrail_kpis.raw_jira_issues` j
+FROM (
+  SELECT * EXCEPT(rn) FROM (
+    SELECT *, ROW_NUMBER() OVER(PARTITION BY key ORDER BY synced_at DESC) as rn
+    FROM `testrail_kpis.raw_jira_issues`
+    WHERE issue_type IN ('Defecto_TestRail', 'Defecto-No-Productivo')
+      AND status NOT IN ('Terminado', 'Cerrado', 'Cancelado', 'Mitigado')
+  ) WHERE rn = 1
+) j
 LEFT JOIN linked_info li ON j.key = li.extracted_key
-WHERE j.issue_type = 'Defecto_TestRail'
 GROUP BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11;

@@ -11,11 +11,13 @@ interface ChartProps {
 
 // ── Sura-brand color palette ────────────────────────────────────────────────
 const COLORS = {
-    passed:   '#10B981', // Green — Certificados
-    failed:   '#EF4444', // Red — Fallados
-    blocked:  '#F59E0B', // Amber — Bloqueados
-    untested: '#B4B4B5', // Sura Gray — Sin Probar
-    retest:   '#8A9CD3', // Sura Periwinkle — En Progreso
+    passed:     '#10B981', // Green — Certificados
+    failed:     '#EF4444', // Red — Fallados
+    blocked:    '#F59E0B', // Amber — Bloqueados
+    untested:   '#B4B4B5', // Sura Gray — Sin Probar
+    retest:     '#8A9CD3', // Sura Periwinkle — En Progreso
+    backlog:    '#94A3B8', // Slate — Backlog (no ha llegado fecha)
+    pendientes: '#FB923C', // Orange — Pendientes (fecha llegó, 0% ejecución)
 };
 
 const COLORS_STATUS: Record<string, string> = {
@@ -64,14 +66,18 @@ export function StatusPieChart({ data }: ChartProps) {
         Blocked:    acc.Blocked    + (Number(row.runs_blocked)     || 0),
         InProgress: acc.InProgress + (Number(row.runs_in_progress) || 0),
         Untested:   acc.Untested   + (Number(row.runs_untested)    || 0),
-    }), { Passed: 0, Failed: 0, Blocked: 0, InProgress: 0, Untested: 0 });
+        Backlog:    acc.Backlog    + (Number(row.runs_backlog)     || 0),
+        Pendientes: acc.Pendientes + (Number(row.runs_pending)    || 0),
+    }), { Passed: 0, Failed: 0, Blocked: 0, InProgress: 0, Untested: 0, Backlog: 0, Pendientes: 0 });
 
     const chartData = [
-        { name: 'Certificados', value: sums.Passed,     color: COLORS.passed   },
-        { name: 'Fallados',     value: sums.Failed,     color: COLORS.failed   },
-        { name: 'Bloqueados',   value: sums.Blocked,    color: COLORS.blocked  },
-        { name: 'En Progreso',  value: sums.InProgress, color: COLORS.retest   },
-        { name: 'Sin Probar',   value: sums.Untested,   color: COLORS.untested },
+        { name: 'Certificados', value: sums.Passed,     color: COLORS.passed     },
+        { name: 'Fallados',     value: sums.Failed,     color: COLORS.failed     },
+        { name: 'Bloqueados',   value: sums.Blocked,    color: COLORS.blocked    },
+        { name: 'En Progreso',  value: sums.InProgress, color: COLORS.retest     },
+        { name: 'Pendientes',   value: sums.Pendientes, color: COLORS.pendientes },
+        { name: 'Backlog',      value: sums.Backlog,    color: COLORS.backlog    },
+        { name: 'Sin Probar',   value: sums.Untested,   color: COLORS.untested   },
     ].filter(d => d.value > 0);
 
     const total = chartData.reduce((acc, cur) => acc + cur.value, 0);

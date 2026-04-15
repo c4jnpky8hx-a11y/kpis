@@ -1,0 +1,12 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/testrail-480214/testrail-kpis-dashboard:latest'
+      - '-f'
+      - 'web/Dockerfile'
+      - '.'
+images:
+  - 'gcr.io/testrail-480214/testrail-kpis-dashboard:latest'
+timeout: '1200s'

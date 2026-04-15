@@ -10,6 +10,8 @@ interface MetricCardProps {
     trend?: 'up' | 'down' | 'neutral';
     trendValue?: string;
     statusColor?: 'green' | 'red' | 'yellow' | 'blue' | 'gray';
+    active?: boolean;
+    onClick?: () => void;
 }
 
 // Sura-brand semantic color mappings (light mode)
@@ -48,19 +50,24 @@ export default function MetricCard({
     className,
     trend,
     trendValue,
-    statusColor = 'gray'
+    statusColor = 'gray',
+    active,
+    onClick,
 }: MetricCardProps) {
     const cfg = statusConfig[statusColor];
 
     return (
-        <div className={twMerge(
-            "relative group overflow-hidden rounded-xl p-5 transition-all duration-300",
-            className
-        )}
+        <div
+            onClick={onClick}
+            className={twMerge(
+                "relative group overflow-hidden rounded-xl p-5 transition-all duration-300",
+                onClick && "cursor-pointer",
+                className
+            )}
             style={{
                 background: 'var(--bg-card)',
-                border: '1px solid var(--border-light)',
-                boxShadow: '0 1px 4px rgba(0,51,160,0.06)',
+                border: active ? '2px solid var(--sura-blue)' : '1px solid var(--border-light)',
+                boxShadow: active ? '0 0 0 3px rgba(45,109,246,0.15)' : '0 1px 4px rgba(0,51,160,0.06)',
             }}
         >
             {/* Top accent bar (Sura blue) */}

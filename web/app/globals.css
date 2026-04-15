@@ -1,33 +1,38 @@
 @import "tailwindcss";
 
+/* ── Disable Tailwind v4 automatic dark mode ─────────────────────────────── */
+@custom-variant dark (&:is(.dark *));
+
 /* ── SURA Brand Color System ───────────────────────────────────────────────── */
 :root {
+  color-scheme: light !important;
+
   /* Primary */
-  --sura-blue:        #2D6DF6;   /* Azul SURA Pantone 285 C */
-  --sura-blue-dark:   #0033A0;   /* Aqua SURA */
-  --sura-aqua:        #00AEC7;   /* Aqua */
-  --sura-yellow:      #E3E829;   /* Amarillo alegre */
+  --sura-blue:        #2D6DF6;
+  --sura-blue-dark:   #0033A0;
+  --sura-aqua:        #00AEC7;
+  --sura-yellow:      #E3E829;
 
   /* Complementary */
-  --sura-periwinkle:  #8A9CD3;   /* Pantone 2114 C */
-  --sura-sky:         #81B1FF;   /* Pantone 284 C */
-  --sura-mint:        #9BE1E9;   /* Pantone 304 C */
-  --sura-lemon:       #ECF0A1;   /* Pantone 461 C */
-  --sura-gray:        #B4B4B5;   /* Pantone 429 C */
+  --sura-periwinkle:  #8A9CD3;
+  --sura-sky:         #81B1FF;
+  --sura-mint:        #9BE1E9;
+  --sura-lemon:       #ECF0A1;
+  --sura-gray:        #B4B4B5;
 
   /* Digital backgrounds (from brand book) */
-  --bg-page:          #F8F8F8;   /* Fondo principal — Blanco roto */
-  --bg-card:          #FFFFFF;   /* Tarjetas — Blanco puro */
-  --bg-blue-tint:     #DFEAFF;   /* Tinte azul claro */
-  --bg-aqua-tint:     #D5F5F8;   /* Tinte aqua */
-  --bg-lemon-tint:    #F9FAE1;   /* Tinte amarillo */
-  --bg-gray-tint:     #E5E9EA;   /* Tinte gris */
+  --bg-page:          #F8F8F8;
+  --bg-card:          #FFFFFF;
+  --bg-blue-tint:     #DFEAFF;
+  --bg-aqua-tint:     #D5F5F8;
+  --bg-lemon-tint:    #F9FAE1;
+  --bg-gray-tint:     #E5E9EA;
 
   /* Text */
-  --text-primary:     #0033A0;   /* Azul oscuro SURA para títulos */
-  --text-body:        #1A2B4A;   /* Azul muy oscuro para cuerpo */
-  --text-secondary:   #4A6390;   /* Azul medio para labels */
-  --text-muted:       #8499B8;   /* Azul apagado para info secundaria */
+  --text-primary:     #0033A0;
+  --text-body:        #1A2B4A;
+  --text-secondary:   #4A6390;
+  --text-muted:       #8499B8;
 
   /* Borders */
   --border-light:     #E2E8F0;
@@ -39,17 +44,22 @@
   --status-amber:     #F59E0B;
   --status-purple:    #8B5CF6;
 
-  /* Legacy aliases (used in Tailwind inline classes) */
-  --background:       var(--bg-page);
-  --foreground:       var(--text-body);
-  --card-bg:          var(--bg-card);
-  --card-border:      var(--border-light);
-  --accent-primary:   var(--sura-blue);
+  /* Legacy aliases */
+  --background:       #F8F8F8;
+  --foreground:       #1A2B4A;
+  --card-bg:          #FFFFFF;
+  --card-border:      #E2E8F0;
+  --accent-primary:   #2D6DF6;
+}
+
+html {
+  color-scheme: light !important;
+  background: #F8F8F8 !important;
 }
 
 body {
-  background: var(--bg-page);
-  color: var(--text-body);
+  background: #F8F8F8 !important;
+  color: #1A2B4A !important;
   font-family: var(--font-inter), sans-serif;
 }
 
@@ -59,12 +69,12 @@ body {
 
 /* ── Sura scrollbar ───────────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: var(--bg-page); }
-::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--sura-blue); }
+::-webkit-scrollbar-track { background: #F8F8F8; }
+::-webkit-scrollbar-thumb { background: #E2E8F0; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #2D6DF6; }
 
 /* ── Select option styling (light) ───────────────────────────────────────── */
 select option {
   background: #ffffff;
-  color: var(--text-body);
+  color: #1A2B4A;
 }

@@ -14,6 +14,11 @@ sql_files = [
     "sql/dashboard_mart.sql",        # main dashboard
     "sql/dashboard_pruebas.sql",     # testing dashboard
     "sql/run_details_mart.sql",      # cycle details
+    "sql/dashboard_mart_projects.sql",  # project summary
+    "sql/jira_defects_summary.sql",    # jira defects view
+    "sql/workload_by_analyst.sql",     # workload chart
+    "sql/project_analyst_demand.sql",  # demand chart
+    "sql/insurance_process_coverage.sql",  # insurance coverage
 ]
 
 root = os.path.dirname(os.path.abspath(__file__))

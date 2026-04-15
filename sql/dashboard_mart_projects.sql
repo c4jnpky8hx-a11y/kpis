@@ -95,4 +95,4 @@ LEFT JOIN project_analysts pa ON p.id = pa.project_id
 
 -- Filter: Only Active Projects
 WHERE p.is_completed = false
-AND p.id NOT IN (1, 7, 9, 17, 18, 19, 21, 23);
+AND p.id NOT IN (7, 9, 17, 18, 19, 21, 23);

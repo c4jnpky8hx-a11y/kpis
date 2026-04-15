@@ -49,7 +49,7 @@ interface AnalystData {
     [key: string]: string | number; // dynamic project keys
 }
 
-export default function WorkloadChart() {
+export default function WorkloadChart({ excludedProjects = new Set<string>(), selectedProject = 'All' }: { excludedProjects?: Set<string>; selectedProject?: string }) {
     const [rawData, setRawData] = useState<WorkloadRow[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -63,12 +63,20 @@ export default function WorkloadChart() {
             .catch(() => setLoading(false));
     }, []);
 
+    const visibleData = useMemo(() => {
+        return rawData.filter(row => {
+            if (excludedProjects.has(String(row.project_id))) return false;
+            if (selectedProject !== 'All' && String(row.project_id) !== selectedProject) return false;
+            return true;
+        });
+    }, [rawData, excludedProjects, selectedProject]);
+
     // Transform: pivot from analyst+project rows → one row per analyst with project columns
     const { chartData, projects } = useMemo(() => {
         const projectSet = new Set<string>();
         const analystMap = new Map<string, AnalystData>();
 
-        for (const row of rawData) {
+        for (const row of visibleData) {
             const name = row.analyst_name;
             const projKey = row.project_name;
             projectSet.add(projKey);
@@ -84,7 +92,7 @@ export default function WorkloadChart() {
         // Sort by total descending
         const sorted = Array.from(analystMap.values()).sort((a, b) => b.total - a.total);
         return { chartData: sorted, projects: Array.from(projectSet) };
-    }, [rawData]);
+    }, [visibleData]);
 
     // Color map for projects
     const colorMap = useMemo(() => {
@@ -215,7 +223,7 @@ export default function WorkloadChart() {
                         </tr>
                     </thead>
                     <tbody>
-                        {rawData
+                        {visibleData
                             .sort((a, b) => Number(b.total_assigned) - Number(a.total_assigned))
                             .map((row, i) => (
                                 <tr key={i} style={{ borderBottom: '1px solid var(--border-light)' }}
