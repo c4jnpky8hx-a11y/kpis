@@ -253,7 +253,7 @@ class SyncEngine:
         skipped = []
 
         for project in projects:
-            if project['id'] not in [1, 12, 23, 4, 8]:
+            if project['id'] not in [1, 12, 23, 4, 8, 3]:
                 continue
 
             query = f"SELECT DISTINCT id FROM `{self.bq_dataset}.raw_runs` WHERE project_id = {project['id']}"
@@ -283,7 +283,7 @@ class SyncEngine:
         skipped = []
 
         for project in projects:
-            if project['id'] not in [1, 12, 23, 4, 8]:
+            if project['id'] not in [1, 12, 23, 4, 8, 3]:
                 continue
 
             query = f"SELECT DISTINCT id FROM `{self.bq_dataset}.raw_runs` WHERE project_id = {project['id']}"
