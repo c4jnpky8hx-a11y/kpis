@@ -43,26 +43,23 @@ WITH run_stats AS (
 SELECT
     rs.*,
     CASE
-      -- Primero: si hay fallos o retest → Fallado
+      -- Primero: sin casos de prueba → Backlog
+      WHEN rs.total_tests = 0 THEN 'Backlog'
+      -- Segundo: si hay fallos o retest → Fallado
       WHEN rs.failed_count > 0 OR rs.retest_count > 0 THEN 'Fallado'
-      -- Segundo: si hay bloqueados → Bloqueado
+      -- Tercero: si hay bloqueados (sin fallos) → Bloqueado
       WHEN rs.blocked_count > 0 THEN 'Bloqueado'
-      -- Tercero: todos los casos pasados → Certificado
-      WHEN rs.total_tests > 0 AND rs.passed_count = rs.total_tests THEN 'Certificado'
-      -- Cuarto: 0% ejecución (solo untested, nada ejecutado) + fecha inicio futura → Backlog
-      WHEN rs.total_tests > 0
-        AND rs.passed_count = 0 AND rs.failed_count = 0 AND rs.blocked_count = 0
+      -- Cuarto: todos los casos pasados → Certificado
+      WHEN rs.passed_count = rs.total_tests THEN 'Certificado'
+      -- Quinto: 0% ejecución + fecha inicio futura → Pendiente
+      WHEN rs.passed_count = 0 AND rs.failed_count = 0 AND rs.blocked_count = 0
         AND rs.retest_count = 0 AND rs.process_count = 0
         AND rs.explicit_plan_start IS NOT NULL
-        AND rs.explicit_plan_start > CURRENT_TIMESTAMP() THEN 'Backlog'
-      -- Quinto: 0% ejecución + fecha inicio ya pasó (o sin fecha) → Pendiente
-      WHEN rs.total_tests > 0
-        AND rs.passed_count = 0 AND rs.failed_count = 0 AND rs.blocked_count = 0
-        AND rs.retest_count = 0 AND rs.process_count = 0
-        AND (rs.explicit_plan_start IS NULL OR rs.explicit_plan_start <= CURRENT_TIMESTAMP()) THEN 'Pendiente'
-      -- Sexto: tiene tests con alguna ejecución parcial → En Progreso
-      WHEN rs.total_tests > 0 THEN 'En Progreso'
-      -- Último: sin tests
-      ELSE 'Sin Probar'
+        AND rs.explicit_plan_start > CURRENT_TIMESTAMP() THEN 'Pendiente'
+      -- Sexto: 0% ejecución + fecha inicio pasada o sin fecha → Backlog
+      WHEN rs.passed_count = 0 AND rs.failed_count = 0 AND rs.blocked_count = 0
+        AND rs.retest_count = 0 AND rs.process_count = 0 THEN 'Backlog'
+      -- Séptimo: ejecución parcial → En Progreso
+      ELSE 'En Progreso'
     END as run_status
 FROM run_stats rs;

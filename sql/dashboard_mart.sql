@@ -80,21 +80,24 @@ run_stats AS (
     COUNTIF(t.status_id = 3) as untested_count,
     COUNT(t.id) as total_tests,
     
-    -- Run-Level Execution Status (Failed > Blocked > Certified > Backlog > Pendiente > In Progress)
+    -- Run-Level Execution Status (Failed > Blocked > Passed > Pending > Backlog > In Progress)
+    -- Reglas:
+    --   Sin casos de prueba                                         → Backlog
+    --   Con casos, sin ejecución, fecha inicio futura              → Pending
+    --   Con casos, sin ejecución, fecha inicio pasada o sin fecha  → Backlog
+    --   Con casos, sin ejecución, sin fecha de inicio              → Backlog
     CASE
+      WHEN COUNT(t.id) = 0 THEN 'Backlog'
       WHEN COUNTIF(t.status_id IN (4, 5)) > 0 THEN 'Failed'
       WHEN COUNTIF(t.status_id = 2) > 0 THEN 'Blocked'
-      WHEN COUNT(t.id) > 0 AND COUNTIF(t.status_id = 1) = COUNT(t.id) THEN 'Passed'
-      WHEN COUNT(t.id) > 0
-        AND COUNTIF(t.status_id = 1) = 0 AND COUNTIF(t.status_id IN (4, 5)) = 0
+      WHEN COUNTIF(t.status_id = 1) = COUNT(t.id) THEN 'Passed'
+      WHEN COUNTIF(t.status_id = 1) = 0 AND COUNTIF(t.status_id IN (4, 5)) = 0
         AND COUNTIF(t.status_id = 2) = 0 AND COUNTIF(t.status_id = 6) = 0
         AND MAX(psd.explicit_start) IS NOT NULL
-        AND MAX(psd.explicit_start) > CURRENT_TIMESTAMP() THEN 'Backlog'
-      WHEN COUNT(t.id) > 0
-        AND COUNTIF(t.status_id = 1) = 0 AND COUNTIF(t.status_id IN (4, 5)) = 0
-        AND COUNTIF(t.status_id = 2) = 0 AND COUNTIF(t.status_id = 6) = 0 THEN 'Pending'
-      WHEN COUNT(t.id) > 0 THEN 'In Progress'
-      ELSE 'Untested'
+        AND MAX(psd.explicit_start) > CURRENT_TIMESTAMP() THEN 'Pending'
+      WHEN COUNTIF(t.status_id = 1) = 0 AND COUNTIF(t.status_id IN (4, 5)) = 0
+        AND COUNTIF(t.status_id = 2) = 0 AND COUNTIF(t.status_id = 6) = 0 THEN 'Backlog'
+      ELSE 'In Progress'
     END as run_status,
     
     -- Defect Counts (TestRail)
@@ -224,7 +227,6 @@ plan_aggs AS (
     COUNTIF(rs.run_status = 'Blocked') as runs_blocked,
     COUNTIF(rs.run_status = 'Passed') as runs_passed,
     COUNTIF(rs.run_status = 'In Progress') as runs_in_progress,
-    COUNTIF(rs.run_status = 'Untested') as runs_untested,
     COUNTIF(rs.run_status = 'Backlog') as runs_backlog,
     COUNTIF(rs.run_status = 'Pending') as runs_pending,
 
@@ -291,15 +293,16 @@ SELECT
   project_name,
   
   -- 1. Iniciativas Certificadas / En Proceso
-  CASE 
-    WHEN plan_start_date IS NULL THEN 'Backlog'
-    WHEN all_runs_completed = 1 OR plan_is_completed OR (total_tests > 0 AND total_passed = total_tests) OR (total_tests = 0 AND total_runs > 0) THEN 'Certificada'
+  -- Un plan sin casos de prueba (total_tests = 0) es Backlog, no Certificada.
+  CASE
+    WHEN plan_start_date IS NULL OR total_tests = 0 THEN 'Backlog'
+    WHEN all_runs_completed = 1 OR plan_is_completed OR total_passed = total_tests THEN 'Certificada'
     ELSE 'En Proceso'
   END as Estado_Iniciativa,
-  
-  IF(all_runs_completed = 1 OR plan_is_completed OR (total_tests > 0 AND total_passed = total_tests) OR (total_tests = 0 AND total_runs > 0), 1, 0) as is_certified,
-  IF(plan_start_date IS NOT NULL AND NOT (all_runs_completed = 1 OR plan_is_completed OR (total_tests > 0 AND total_passed = total_tests) OR (total_tests = 0 AND total_runs > 0)), 1, 0) as is_in_process,
-  IF(plan_start_date IS NULL, 1, 0) as is_backlog,
+
+  IF(total_tests > 0 AND (all_runs_completed = 1 OR plan_is_completed OR total_passed = total_tests), 1, 0) as is_certified,
+  IF((plan_start_date IS NOT NULL AND total_tests > 0) AND NOT (all_runs_completed = 1 OR plan_is_completed OR total_passed = total_tests), 1, 0) as is_in_process,
+  IF(plan_start_date IS NULL OR total_tests = 0, 1, 0) as is_backlog,
   
   -- 2. UAT Metrics (Project 4 Only)
   -- Soluciones Devueltas
@@ -359,7 +362,6 @@ SELECT
   IF(project_id NOT IN (12, 21), runs_blocked, 0) as runs_blocked,
   IF(project_id NOT IN (12, 21), runs_passed, 0) as runs_passed,
   IF(project_id NOT IN (12, 21), runs_in_progress, 0) as runs_in_progress,
-  IF(project_id NOT IN (12, 21), runs_untested, 0) as runs_untested,
   IF(project_id NOT IN (12, 21), runs_backlog, 0) as runs_backlog,
   IF(project_id NOT IN (12, 21), runs_pending, 0) as runs_pending,
 

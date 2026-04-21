@@ -64,7 +64,7 @@ const INDICATORS: Indicator[] = [
         section: 'Gráficos de Ejecución',
         color: 'purple',
         description: 'Distribución del estado de los ciclos de prueba completos, no de casos individuales.',
-        howCalculated: 'Cada ciclo (run) recibe un único estado según regla de prioridad estricta:\n1. Fallado: si tiene AL MENOS 1 caso fallado\n2. Bloqueado: si tiene AL MENOS 1 bloqueado (y ningún fallado)\n3. En Progreso: tiene casos pendientes/pasados pero no fallados ni bloqueados\n4. Certificado: TODOS los casos están pasados\n5. Sin Probar: no se ha ejecutado ningún caso',
+        howCalculated: 'Cada ciclo (run) recibe un único estado según regla de prioridad estricta:\n1. Backlog: sin casos de prueba, O sin ejecución con fecha de inicio ya vencida o sin fecha\n2. Pendiente: con casos pero sin ejecución Y fecha de inicio futura\n3. Fallado: si tiene AL MENOS 1 caso fallado o en re-prueba\n4. Bloqueado: si tiene AL MENOS 1 bloqueado (y ningún fallado)\n5. En Progreso: ejecución parcial sin fallos ni bloqueos\n6. Certificado: TODOS los casos están pasados',
         howToRead: 'Un ciclo "Fallado" no significa que todo falló, sino que hay al menos 1 caso que requiere atención. Permite ver la salud general del proceso de pruebas de manera binaria clara.',
     },
     // ── UAT ──────────────────────────────────────────────────

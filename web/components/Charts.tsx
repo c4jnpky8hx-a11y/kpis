@@ -65,10 +65,9 @@ export function StatusPieChart({ data }: ChartProps) {
         Failed:     acc.Failed     + (Number(row.runs_failed)      || 0),
         Blocked:    acc.Blocked    + (Number(row.runs_blocked)     || 0),
         InProgress: acc.InProgress + (Number(row.runs_in_progress) || 0),
-        Untested:   acc.Untested   + (Number(row.runs_untested)    || 0),
         Backlog:    acc.Backlog    + (Number(row.runs_backlog)     || 0),
         Pendientes: acc.Pendientes + (Number(row.runs_pending)    || 0),
-    }), { Passed: 0, Failed: 0, Blocked: 0, InProgress: 0, Untested: 0, Backlog: 0, Pendientes: 0 });
+    }), { Passed: 0, Failed: 0, Blocked: 0, InProgress: 0, Backlog: 0, Pendientes: 0 });
 
     const chartData = [
         { name: 'Certificados', value: sums.Passed,     color: COLORS.passed     },
@@ -77,7 +76,6 @@ export function StatusPieChart({ data }: ChartProps) {
         { name: 'En Progreso',  value: sums.InProgress, color: COLORS.retest     },
         { name: 'Pendientes',   value: sums.Pendientes, color: COLORS.pendientes },
         { name: 'Backlog',      value: sums.Backlog,    color: COLORS.backlog    },
-        { name: 'Sin Probar',   value: sums.Untested,   color: COLORS.untested   },
     ].filter(d => d.value > 0);
 
     const total = chartData.reduce((acc, cur) => acc + cur.value, 0);

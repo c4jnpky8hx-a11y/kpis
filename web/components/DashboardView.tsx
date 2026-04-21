@@ -449,10 +449,9 @@ export default function DashboardView() {
                                                 const failed = reduceSum('runs_failed');
                                                 const blocked = reduceSum('runs_blocked');
                                                 const inProgress = reduceSum('runs_in_progress');
-                                                const untested = reduceSum('runs_untested');
                                                 const backlog = reduceSum('runs_backlog');
                                                 const pending = reduceSum('runs_pending');
-                                                const totalAll = certified + failed + blocked + inProgress + untested + backlog + pending;
+                                                const totalAll = certified + failed + blocked + inProgress + backlog + pending;
                                                 const pct = (v: number) => totalAll > 0 ? ((v / totalAll) * 100).toFixed(1) : '0.0';
                                                 const items = [
                                                     { label: 'Certificados', value: certified, color: '#10B981', icon: '✓' },
@@ -461,7 +460,6 @@ export default function DashboardView() {
                                                     { label: 'En Progreso', value: inProgress, color: '#8B5CF6', icon: '◉' },
                                                     { label: 'Pendientes', value: pending, color: '#FB923C', icon: '⚠' },
                                                     { label: 'Backlog', value: backlog, color: '#94A3B8', icon: '◻' },
-                                                    { label: 'Sin Probar', value: untested, color: '#374151', icon: '○' },
                                                 ];
                                                 return (
                                                     <div className="mt-6 pt-6" style={{ borderTop: '1px solid var(--border-light)' }}>
