@@ -4,7 +4,7 @@ import React, { useState, useMemo } from 'react';
 import {
     Search, ChevronLeft, ChevronRight, ChevronDown, ChevronRight as ChevronRightIcon,
     PlayCircle, CheckCircle, AlertTriangle, XCircle, Clock, ExternalLink, Bug,
-    ArrowUpDown, Layers
+    ArrowUpDown, Layers, RefreshCw
 } from 'lucide-react';
 import CsvExportButton from './CsvExport';
 
@@ -27,6 +27,7 @@ function getStatusStyle(status: string): React.CSSProperties {
         case 'Certificado': return { background: '#D1FAE5', color: '#065F46', border: '1px solid #6EE7B7' };
         case 'Fallado':     return { background: '#FEE2E2', color: '#991B1B', border: '1px solid #FECACA' };
         case 'Bloqueado':   return { background: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A' };
+        case 'Reprueba':    return { background: '#F3E8FF', color: '#6B21A8', border: '1px solid #D8B4FE' };
         case 'En Progreso': return { background: 'var(--bg-blue-tint)', color: 'var(--sura-blue)', border: '1px solid var(--border-blue)' };
         case 'Backlog':     return { background: '#F1F5F9', color: '#475569', border: '1px solid #CBD5E1' };
         case 'Pendiente':   return { background: '#FFF7ED', color: '#C2410C', border: '1px solid #FDBA74' };
@@ -39,6 +40,7 @@ function getStatusIcon(status: string) {
         case 'Certificado': return <CheckCircle className="w-3 h-3" style={{ color: '#059669' }} />;
         case 'Fallado':     return <XCircle className="w-3 h-3" style={{ color: '#DC2626' }} />;
         case 'Bloqueado':   return <AlertTriangle className="w-3 h-3" style={{ color: '#D97706' }} />;
+        case 'Reprueba':    return <RefreshCw className="w-3 h-3" style={{ color: '#A855F7' }} />;
         case 'En Progreso': return <PlayCircle className="w-3 h-3" style={{ color: 'var(--sura-blue)' }} />;
         case 'Backlog':     return <Clock className="w-3 h-3" style={{ color: '#475569' }} />;
         case 'Pendiente':   return <AlertTriangle className="w-3 h-3" style={{ color: '#C2410C' }} />;
@@ -181,7 +183,8 @@ export default function CycleDetailBreakdown({ data, jiraData }: Props) {
         pasados: r.passed_count,
         fallados: r.failed_count,
         bloqueados: r.blocked_count,
-        en_progreso: (Number(r.process_count) || 0) + (Number(r.retest_count) || 0),
+        reprueba: r.retest_count,
+        en_progreso: r.process_count,
         sin_probar: r.untested_count,
         defectos: r._defectCount,
     }));
@@ -324,7 +327,8 @@ export default function CycleDetailBreakdown({ data, jiraData }: Props) {
                             const passed = Number(run.passed_count) || 0;
                             const failed = Number(run.failed_count) || 0;
                             const blocked = Number(run.blocked_count) || 0;
-                            const inProgress = (Number(run.process_count) || 0) + (Number(run.retest_count) || 0);
+                            const retest = Number(run.retest_count) || 0;
+                            const inProgress = Number(run.process_count) || 0;
                             const untested = Number(run.untested_count) || 0;
                             const total = Number(run.total_tests) || 1;
 
@@ -388,6 +392,10 @@ export default function CycleDetailBreakdown({ data, jiraData }: Props) {
                                                     <div style={{ width: `${(blocked / total) * 100}%`, background: '#f97316' }}
                                                         title={`Bloqueados: ${blocked}`} />
                                                 )}
+                                                {retest > 0 && (
+                                                    <div style={{ width: `${(retest / total) * 100}%`, background: '#A855F7' }}
+                                                        title={`Reprueba: ${retest}`} />
+                                                )}
                                                 {inProgress > 0 && (
                                                     <div style={{ width: `${(inProgress / total) * 100}%`, background: '#3b82f6' }}
                                                         title={`En Progreso: ${inProgress}`} />
@@ -402,23 +410,27 @@ export default function CycleDetailBreakdown({ data, jiraData }: Props) {
                                         <td className="py-2 px-3">
                                             <div className="flex items-center gap-1 flex-wrap">
                                                 {passed > 0 && (
-                                                    <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-semibold"
+                                                    <span title="Pasados" className="px-1.5 py-0.5 rounded text-[9px] font-mono font-semibold"
                                                         style={{ background: '#D1FAE5', color: '#065F46' }}>{passed}</span>
                                                 )}
                                                 {failed > 0 && (
-                                                    <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-semibold"
+                                                    <span title="Fallados" className="px-1.5 py-0.5 rounded text-[9px] font-mono font-semibold"
                                                         style={{ background: '#FEE2E2', color: '#991B1B' }}>{failed}</span>
                                                 )}
                                                 {blocked > 0 && (
-                                                    <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-semibold"
+                                                    <span title="Bloqueados" className="px-1.5 py-0.5 rounded text-[9px] font-mono font-semibold"
                                                         style={{ background: '#FEF3C7', color: '#92400E' }}>{blocked}</span>
                                                 )}
+                                                {retest > 0 && (
+                                                    <span title="Reprueba" className="px-1.5 py-0.5 rounded text-[9px] font-mono font-semibold"
+                                                        style={{ background: '#F3E8FF', color: '#6B21A8' }}>{retest}</span>
+                                                )}
                                                 {inProgress > 0 && (
-                                                    <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-semibold"
+                                                    <span title="En Progreso" className="px-1.5 py-0.5 rounded text-[9px] font-mono font-semibold"
                                                         style={{ background: '#DBEAFE', color: '#1D4ED8' }}>{inProgress}</span>
                                                 )}
                                                 {untested > 0 && (
-                                                    <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-semibold"
+                                                    <span title="Sin Probar" className="px-1.5 py-0.5 rounded text-[9px] font-mono font-semibold"
                                                         style={{ background: '#F1F5F9', color: '#64748B' }}>{untested}</span>
                                                 )}
                                             </div>

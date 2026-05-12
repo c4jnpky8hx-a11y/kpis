@@ -45,21 +45,23 @@ SELECT
     CASE
       -- Primero: sin casos de prueba → Backlog
       WHEN rs.total_tests = 0 THEN 'Backlog'
-      -- Segundo: si hay fallos o retest → Fallado
-      WHEN rs.failed_count > 0 OR rs.retest_count > 0 THEN 'Fallado'
-      -- Tercero: si hay bloqueados (sin fallos) → Bloqueado
+      -- Segundo: hay fallos reales (status_id=5) → Fallado
+      WHEN rs.failed_count > 0 THEN 'Fallado'
+      -- Tercero: hay bloqueados → Bloqueado
       WHEN rs.blocked_count > 0 THEN 'Bloqueado'
-      -- Cuarto: todos los casos pasados → Certificado
+      -- Cuarto: 100% de los casos en Retest → Reprueba
+      WHEN rs.retest_count = rs.total_tests THEN 'Reprueba'
+      -- Quinto: todos los casos pasados → Certificado
       WHEN rs.passed_count = rs.total_tests THEN 'Certificado'
-      -- Quinto: 0% ejecución + fecha inicio futura → Pendiente
+      -- Sexto: 0% ejecución + fecha inicio futura → Pendiente
       WHEN rs.passed_count = 0 AND rs.failed_count = 0 AND rs.blocked_count = 0
         AND rs.retest_count = 0 AND rs.process_count = 0
         AND rs.explicit_plan_start IS NOT NULL
         AND rs.explicit_plan_start > CURRENT_TIMESTAMP() THEN 'Pendiente'
-      -- Sexto: 0% ejecución + fecha inicio pasada o sin fecha → Backlog
+      -- Séptimo: 0% ejecución + fecha inicio pasada o sin fecha → Backlog
       WHEN rs.passed_count = 0 AND rs.failed_count = 0 AND rs.blocked_count = 0
         AND rs.retest_count = 0 AND rs.process_count = 0 THEN 'Backlog'
-      -- Séptimo: ejecución parcial → En Progreso
+      -- Octavo: ejecución parcial → En Progreso
       ELSE 'En Progreso'
     END as run_status
 FROM run_stats rs;

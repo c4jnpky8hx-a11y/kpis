@@ -58,25 +58,42 @@ class TestRailClient:
             return data['runs']
         return data
 
-    def get_plans(self, project_id, created_after=None, updated_after=None):
-        params = {}
-        if created_after:
-            params['created_after'] = created_after
-        if updated_after:
-            params['updated_after'] = updated_after
-    def get_plans(self, project_id, created_after=None, updated_after=None):
-        params = {}
-        if created_after:
-            params['created_after'] = created_after
-        if updated_after:
-            params['updated_after'] = updated_after
-        data = self._get(f"get_plans/{project_id}", params=params)
-        logger.info(f"get_plans response type: {type(data)}")
-        if isinstance(data, dict):
-            logger.info(f"get_plans keys: {data.keys()}")
-            if 'plans' in data:
-                return data['plans']
-        return data
+    def get_plans(self, project_id, created_after=None, updated_after=None, is_completed=None):
+        """
+        Fetches plans for a project with full pagination.
+        is_completed: None=all, 0=active only, 1=completed only.
+        TestRail v2 returns paginated response with 'plans' key.
+        """
+        all_plans = []
+        offset = 0
+        limit = 250
+
+        while True:
+            params = {'offset': offset, 'limit': limit}
+            if created_after:
+                params['created_after'] = created_after
+            if updated_after:
+                params['updated_after'] = updated_after
+            if is_completed is not None:
+                params['is_completed'] = is_completed
+
+            data = self._get(f"get_plans/{project_id}", params=params)
+
+            batch = []
+            if isinstance(data, dict) and 'plans' in data:
+                batch = data['plans']
+            elif isinstance(data, list):
+                batch = data
+
+            if not batch:
+                break
+
+            all_plans.extend(batch)
+            if len(batch) < limit:
+                break
+            offset += limit
+
+        return all_plans
 
     def get_results(self, run_id):
         # get_results_for_run/:run_id

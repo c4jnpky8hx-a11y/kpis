@@ -15,7 +15,8 @@ const COLORS = {
     failed:     '#EF4444', // Red — Fallados
     blocked:    '#F59E0B', // Amber — Bloqueados
     untested:   '#B4B4B5', // Sura Gray — Sin Probar
-    retest:     '#8A9CD3', // Sura Periwinkle — En Progreso
+    retest:     '#8A9CD3', // Sura Periwinkle — En Progreso (run-level)
+    reprueba:   '#A855F7', // Purple — Reprueba (caso/ciclo en re-ejecucion)
     backlog:    '#94A3B8', // Slate — Backlog (no ha llegado fecha)
     pendientes: '#FB923C', // Orange — Pendientes (fecha llegó, 0% ejecución)
 };
@@ -64,15 +65,17 @@ export function StatusPieChart({ data }: ChartProps) {
         Passed:     acc.Passed     + (Number(row.runs_passed)      || 0),
         Failed:     acc.Failed     + (Number(row.runs_failed)      || 0),
         Blocked:    acc.Blocked    + (Number(row.runs_blocked)     || 0),
+        Retest:     acc.Retest     + (Number(row.runs_retest)      || 0),
         InProgress: acc.InProgress + (Number(row.runs_in_progress) || 0),
         Backlog:    acc.Backlog    + (Number(row.runs_backlog)     || 0),
         Pendientes: acc.Pendientes + (Number(row.runs_pending)    || 0),
-    }), { Passed: 0, Failed: 0, Blocked: 0, InProgress: 0, Backlog: 0, Pendientes: 0 });
+    }), { Passed: 0, Failed: 0, Blocked: 0, Retest: 0, InProgress: 0, Backlog: 0, Pendientes: 0 });
 
     const chartData = [
         { name: 'Certificados', value: sums.Passed,     color: COLORS.passed     },
         { name: 'Fallados',     value: sums.Failed,     color: COLORS.failed     },
         { name: 'Bloqueados',   value: sums.Blocked,    color: COLORS.blocked    },
+        { name: 'Reprueba',     value: sums.Retest,     color: COLORS.reprueba   },
         { name: 'En Progreso',  value: sums.InProgress, color: COLORS.retest     },
         { name: 'Pendientes',   value: sums.Pendientes, color: COLORS.pendientes },
         { name: 'Backlog',      value: sums.Backlog,    color: COLORS.backlog    },

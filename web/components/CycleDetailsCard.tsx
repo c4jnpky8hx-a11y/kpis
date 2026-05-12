@@ -74,7 +74,8 @@ export default function CycleDetailsCard({ data }: { data: any[] }) {
                         { name: 'Pasados',    value: Number(run.passed_count) || 0,  color: '#10b981' },
                         { name: 'Fallados',   value: Number(run.failed_count) || 0,  color: '#f43f5e' },
                         { name: 'Bloqueados', value: Number(run.blocked_count) || 0, color: '#f97316' },
-                        { name: 'En Progreso',value: (Number(run.process_count) || 0) + (Number(run.retest_count) || 0), color: '#3b82f6' },
+                        { name: 'Reprueba',   value: Number(run.retest_count) || 0,  color: '#A855F7' },
+                        { name: 'En Progreso',value: Number(run.process_count) || 0, color: '#3b82f6' },
                         { name: 'Sin Probar', value: Number(run.untested_count) || 0, color: '#CBD5E1' }
                     ].filter(item => item.value > 0);
 

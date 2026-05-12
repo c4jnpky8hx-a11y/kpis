@@ -82,22 +82,26 @@ class SyncEngine:
             results['users'] = self._sync_users()
             results['statuses'] = self._sync_statuses()
             results['milestones'] = self._sync_milestones()
-            
+
             # Structure
             results['plans'] = self._sync_plans()
             results['runs'] = self._sync_runs()
-            # specific order might matter if dependencies exist, but raw tables are independent mostly
             results['suites'] = self._sync_suites()
             results['cases'] = self._sync_cases()
-            
+
             # Data
             results['tests'] = self._sync_tests()
             results['results'] = self._sync_results()
-            
+
             # External
             results['jira_issues'] = self.sync_jira()
-            
+
+            # Post-sync deduplication to keep raw tables lean
+            results['dedup'] = self._dedup_raw_tables()
+
             return {"status": "success", "detailed_results": results}
+        elif entity == "dedup":
+            return self._dedup_raw_tables()
         else:
             raise ValueError(f"Unknown entity: {entity}")
 
@@ -173,46 +177,73 @@ class SyncEngine:
         return {"status": "success", "count": total}
 
     def _sync_plans(self):
+        """
+        Sync plans for all active projects.
+        Fetches BOTH active and completed plans (TestRail's get_plans defaults to active only).
+        For each plan, fetches detailed view to get nested runs (entries).
+        """
         projects = self.tr_client.get_projects()
         total_plans = 0
         total_runs = 0
-        
-        for project in projects:
-            project_id = project['id']
-            plans = self.tr_client.get_plans(project_id)
-            
-            for plan in plans:
-                detailed_plan = self.tr_client.get_plan(plan['id'])
-                if detailed_plan:
-                    detailed_plan['project_id'] = project_id
-                    custom_fields = {k: v for k, v in detailed_plan.items() if k.startswith('custom_')}
-                    import json
-                    if custom_fields:
-                        detailed_plan['custom_fields'] = json.dumps(custom_fields)
-                    
-                    if 'entries' in detailed_plan:
-                        entries_data = detailed_plan['entries']
-                        detailed_plan['entries'] = json.dumps(entries_data)
-                    else:
-                        entries_data = []
+        skipped_plans = []
 
-                    self.bq_client.insert_rows("raw_plans", [detailed_plan])
-                    total_plans += 1
-                    
-                    if entries_data:
-                        extracted_runs = []
-                        for entry in entries_data:
-                            if 'runs' in entry:
-                                for run in entry['runs']:
-                                    run['plan_id'] = detailed_plan['id']
-                                    run['project_id'] = project_id
-                                    extracted_runs.append(run)
-                        
-                        if extracted_runs:
-                            self.bq_client.insert_rows("raw_runs", extracted_runs)
-                            total_runs += len(extracted_runs)
-                            
-        return {"status": "success", "plans_count": total_plans, "runs_extracted": total_runs}
+        for project in projects:
+            if project.get('is_completed'):
+                continue
+            project_id = project['id']
+
+            # Fetch both active and completed plans
+            active_plans = self.tr_client.get_plans(project_id, is_completed=0)
+            completed_plans = self.tr_client.get_plans(project_id, is_completed=1)
+            plans = active_plans + completed_plans
+
+            logger.info(f"Project {project_id}: {len(active_plans)} active + {len(completed_plans)} completed plans")
+
+            for plan in plans:
+                try:
+                    detailed_plan = self.tr_client.get_plan(plan['id'])
+                except Exception as e:
+                    logger.warning(f"Skipping plan {plan['id']}: {e}")
+                    skipped_plans.append(plan['id'])
+                    continue
+
+                if not detailed_plan:
+                    continue
+
+                detailed_plan['project_id'] = project_id
+                custom_fields = {k: v for k, v in detailed_plan.items() if k.startswith('custom_')}
+                import json
+                if custom_fields:
+                    detailed_plan['custom_fields'] = json.dumps(custom_fields)
+
+                if 'entries' in detailed_plan:
+                    entries_data = detailed_plan['entries']
+                    detailed_plan['entries'] = json.dumps(entries_data)
+                else:
+                    entries_data = []
+
+                self.bq_client.insert_rows("raw_plans", [detailed_plan])
+                total_plans += 1
+
+                if entries_data:
+                    extracted_runs = []
+                    for entry in entries_data:
+                        if 'runs' in entry:
+                            for run in entry['runs']:
+                                run['plan_id'] = detailed_plan['id']
+                                run['project_id'] = project_id
+                                extracted_runs.append(run)
+
+                    if extracted_runs:
+                        self.bq_client.insert_rows("raw_runs", extracted_runs)
+                        total_runs += len(extracted_runs)
+
+        return {
+            "status": "success",
+            "plans_count": total_plans,
+            "runs_extracted": total_runs,
+            "skipped_plans": len(skipped_plans),
+        }
 
     def _sync_milestones(self):
         projects = self.tr_client.get_projects()
@@ -247,20 +278,49 @@ class SyncEngine:
             self.bq_client.insert_rows("raw_users", users)
         return {"status": "success", "count": len(users)}
 
+    def _get_active_project_ids(self):
+        """
+        Returns list of active (non-completed) project IDs from raw_projects.
+        Uses the most recent extraction per project.
+        """
+        query = f"""
+            SELECT id FROM (
+                SELECT id, is_completed,
+                       ROW_NUMBER() OVER(PARTITION BY id ORDER BY _extracted_at DESC) as rn
+                FROM `{self.bq_dataset}.raw_projects`
+            )
+            WHERE rn = 1 AND is_completed = false
+            ORDER BY id
+        """
+        return [row.id for row in self.bq_client.client.query(query)]
+
+    def _get_runs_to_sync(self, project_id, only_active=True):
+        """
+        Returns run IDs to sync for a project. If only_active=True,
+        skips runs marked as completed in our latest snapshot (they don't change).
+        """
+        completed_filter = "AND is_completed = false" if only_active else ""
+        query = f"""
+            SELECT id FROM (
+                SELECT id, is_completed,
+                       ROW_NUMBER() OVER(PARTITION BY id ORDER BY _extracted_at DESC) as rn
+                FROM `{self.bq_dataset}.raw_runs`
+                WHERE project_id = {project_id}
+            )
+            WHERE rn = 1 {completed_filter}
+        """
+        return [row.id for row in self.bq_client.client.query(query)]
+
     def _sync_tests(self):
-        projects = self.tr_client.get_projects()
+        active_project_ids = self._get_active_project_ids()
         total = 0
         skipped = []
 
-        for project in projects:
-            if project['id'] not in [1, 12, 23, 4, 8, 3]:
-                continue
+        logger.info(f"Tests sync target projects: {active_project_ids}")
 
-            query = f"SELECT DISTINCT id FROM `{self.bq_dataset}.raw_runs` WHERE project_id = {project['id']}"
-            query_job = self.bq_client.client.query(query)
-            run_ids = [row.id for row in query_job]
-
-            logger.info(f"Syncing tests for Project {project['id']} ({len(run_ids)} runs)")
+        for project_id in active_project_ids:
+            run_ids = self._get_runs_to_sync(project_id, only_active=True)
+            logger.info(f"Syncing tests for Project {project_id} ({len(run_ids)} active runs)")
 
             for run_id in run_ids:
                 try:
@@ -275,22 +335,18 @@ class SyncEngine:
 
         if skipped:
             logger.info(f"Skipped {len(skipped)} runs due to errors: {skipped[:10]}")
-        return {"status": "success", "count": total, "skipped_runs": len(skipped)}
+        return {"status": "success", "count": total, "skipped_runs": len(skipped), "projects_synced": len(active_project_ids)}
 
     def _sync_results(self):
-        projects = self.tr_client.get_projects()
+        active_project_ids = self._get_active_project_ids()
         total = 0
         skipped = []
 
-        for project in projects:
-            if project['id'] not in [1, 12, 23, 4, 8, 3]:
-                continue
+        logger.info(f"Results sync target projects: {active_project_ids}")
 
-            query = f"SELECT DISTINCT id FROM `{self.bq_dataset}.raw_runs` WHERE project_id = {project['id']}"
-            query_job = self.bq_client.client.query(query)
-            run_ids = [row.id for row in query_job]
-
-            logger.info(f"Syncing results for Project {project['id']} ({len(run_ids)} runs)")
+        for project_id in active_project_ids:
+            run_ids = self._get_runs_to_sync(project_id, only_active=True)
+            logger.info(f"Syncing results for Project {project_id} ({len(run_ids)} active runs)")
 
             for run_id in run_ids:
                 try:
@@ -315,7 +371,7 @@ class SyncEngine:
 
         if skipped:
             logger.info(f"Skipped {len(skipped)} runs due to errors: {skipped[:10]}")
-        return {"status": "success", "count": total, "skipped_runs": len(skipped)}
+        return {"status": "success", "count": total, "skipped_runs": len(skipped), "projects_synced": len(active_project_ids)}
 
     def sync_jira(self):
         """
@@ -345,7 +401,54 @@ class SyncEngine:
                 
             logger.info(f"Jira sync complete. Total issues: {total_synced}")
             return {"status": "success", "count": total_synced}
-            
+
         except Exception as e:
             logger.error(f"Jira sync failed: {e}")
             return {"status": "error", "error": str(e)}
+
+    def _dedup_raw_tables(self):
+        """
+        Post-sync deduplication: keeps only the latest snapshot per ID
+        for each raw_* table. Prevents unbounded growth from streaming inserts.
+
+        For raw_results we dedupe by (test_id, id) since multiple results per test exist.
+        For raw_jira_issues we dedupe by 'key'.
+        """
+        dedup_specs = [
+            ("raw_projects", "id"),
+            ("raw_plans", "id"),
+            ("raw_runs", "id"),
+            ("raw_suites", "id"),
+            ("raw_cases", "id"),
+            ("raw_tests", "id"),
+            ("raw_results", "id"),
+            ("raw_milestones", "id"),
+            ("raw_users", "id"),
+            ("raw_jira_issues", "key"),
+        ]
+
+        results = {}
+        for table, key in dedup_specs:
+            try:
+                query = f"""
+                CREATE OR REPLACE TABLE `{self.bq_dataset}.{table}` AS
+                SELECT * EXCEPT(_rn) FROM (
+                    SELECT *, ROW_NUMBER() OVER(
+                        PARTITION BY {key}
+                        ORDER BY _extracted_at DESC
+                    ) as _rn
+                    FROM `{self.bq_dataset}.{table}`
+                )
+                WHERE _rn = 1
+                """
+                job = self.bq_client.client.query(query)
+                job.result()
+                count_q = f"SELECT COUNT(*) as cnt FROM `{self.bq_dataset}.{table}`"
+                cnt = list(self.bq_client.client.query(count_q).result())[0].cnt
+                results[table] = cnt
+                logger.info(f"Deduped {table}: {cnt} rows remain")
+            except Exception as e:
+                logger.warning(f"Dedup failed for {table}: {e}")
+                results[table] = f"error: {e}"
+
+        return {"status": "success", "row_counts": results}

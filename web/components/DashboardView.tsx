@@ -14,6 +14,7 @@ import { StatusPieChart, DefectsBarChart, DefectsStatusChart, VelocityAreaChart,
 import UnlinkedDefectsTable from './UnlinkedDefectsTable';
 import InsuranceCoverageChart from './InsuranceCoverageChart';
 import CycleDefectsChart from './CycleDefectsChart';
+import ActiveDefectsTracking from './ActiveDefectsTracking';
 import DefectDetailTable from './DefectDetailTable';
 import CycleDetailBreakdown from './CycleDetailBreakdown';
 import { FullDashboardSkeleton } from './SkeletonLoaders';
@@ -36,6 +37,7 @@ export default function DashboardView() {
     const [jiraData, setJiraData] = useState<any[]>([]);
     const [uatTimelineData, setUatTimelineData] = useState<any[]>([]);
     const [runsData, setRunsData] = useState<any[]>([]);
+    const [defectsByCycleData, setDefectsByCycleData] = useState<any[]>([]);
     const [insights, setInsights] = useState<any>(null);
     const [loading, setLoading] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
@@ -91,13 +93,14 @@ export default function DashboardView() {
             }
         };
 
-        const [json, insightsJson, summaryJson, jiraJson, uatJson, runsJson] = await Promise.all([
+        const [json, insightsJson, summaryJson, jiraJson, uatJson, runsJson, defectsByCycleJson] = await Promise.all([
             safeFetch(`/api/data?type=${activeTab}`, 'Datos principales'),
             safeFetch('/api/insights', 'Insights'),
             safeFetch('/api/projects/summary', 'Resumen proyectos'),
             safeFetch('/api/data?type=unlinked', 'Defectos Jira'),
             safeFetch('/api/data?type=uat_timeline', 'Timeline UAT'),
             safeFetch(`/api/data?type=runs`, 'Runs'),
+            safeFetch('/api/data?type=defects_by_cycle', 'Defectos por Ciclo'),
         ]);
 
         // Build a simple hash to detect changes
@@ -114,6 +117,7 @@ export default function DashboardView() {
         if (jiraJson?.data) setJiraData(jiraJson.data);
         if (uatJson?.data) setUatTimelineData(uatJson.data);
         if (runsJson?.data) setRunsData(runsJson.data);
+        if (defectsByCycleJson?.data) setDefectsByCycleData(defectsByCycleJson.data);
 
         if (errors.length > 0) {
             addToast(`Error cargando: ${errors.join(', ')}`, 'error');
@@ -166,6 +170,17 @@ export default function DashboardView() {
         return result;
     }, [data, selectedYear, selectedMonth, selectedProject, excludedProjects, drillDown]);
 
+    // UAT KPIs: aggregate ALL plans from Repositorio UAT (project 12)
+    // ignoring project/exclusion filters. Date filters still apply if set.
+    const uatData = useMemo(() => {
+        return data.filter(d => {
+            if (String(d.project_id) !== '12') return false;
+            if (selectedYear !== 'All' && d.month_key && !d.month_key.startsWith(selectedYear)) return false;
+            if (selectedMonth !== 'All' && d.month_key !== selectedMonth) return false;
+            return true;
+        });
+    }, [data, selectedYear, selectedMonth]);
+
     const filteredRuns = useMemo(() => {
         return runsData.filter(d => {
             if (excludedProjects.has(String(d.project_id))) return false;
@@ -203,6 +218,7 @@ export default function DashboardView() {
     const kpis = useMemo(() => {
         if (!filteredData.length) return null;
         const reduceSum = (key: string) => filteredData.reduce((acc, row) => acc + (Number(row[key]) || 0), 0);
+        const reduceUat = (key: string) => uatData.reduce((acc, row) => acc + (Number(row[key]) || 0), 0);
         const countIf = (predicate: (row: any) => boolean) => filteredData.filter(predicate).length;
         const allDefectoTR = jiraData.filter(d => !d.issue_type || d.issue_type === 'Defecto_TestRail');
         const activeDefects = filteredJiraData;
@@ -215,14 +231,18 @@ export default function DashboardView() {
             active_defects: activeDefects.length,
             linked_defects: linkedActive,
             unlinked_defects: unlinkedActive,
-            uat_certified: reduceSum('Soluciones_Certificadas_UAT'),
-            uat_returned: reduceSum('Soluciones_Devueltas_UAT'),
-            uat_in_process: reduceSum('Soluciones_En_Proceso_UAT'),
+            // UAT counters: ALWAYS aggregate ALL plans of Repositorio UAT (project 12)
+            // Certificadas = ciclos pasados al 100% (con o sin acta = Certificadas + Firmadas)
+            uat_certified: reduceUat('Soluciones_Certificadas_UAT') + reduceUat('Iniciativas_Firmadas_UAT'),
+            uat_returned: reduceUat('Soluciones_Devueltas_UAT'),
+            uat_in_process: reduceUat('Soluciones_En_Proceso_UAT'),
+            uat_signed: reduceUat('Iniciativas_Firmadas_UAT'),
+            uat_iterations: reduceUat('Iteraciones_UAT'),
             certified_plans: countIf(d => d.is_certified === 1),
             process_plans: countIf(d => d.is_in_process === 1),
             backlog_plans: countIf(d => d.is_backlog === 1),
         };
-    }, [filteredData, jiraData, filteredJiraData]);
+    }, [filteredData, uatData, jiraData, filteredJiraData]);
 
     const filteredSummary = useMemo(() => {
         return summary.filter(d => !excludedProjects.has(String(d.project_id)));
@@ -448,15 +468,17 @@ export default function DashboardView() {
                                                 const certified = reduceSum('runs_passed');
                                                 const failed = reduceSum('runs_failed');
                                                 const blocked = reduceSum('runs_blocked');
+                                                const retest = reduceSum('runs_retest');
                                                 const inProgress = reduceSum('runs_in_progress');
                                                 const backlog = reduceSum('runs_backlog');
                                                 const pending = reduceSum('runs_pending');
-                                                const totalAll = certified + failed + blocked + inProgress + backlog + pending;
+                                                const totalAll = certified + failed + blocked + retest + inProgress + backlog + pending;
                                                 const pct = (v: number) => totalAll > 0 ? ((v / totalAll) * 100).toFixed(1) : '0.0';
                                                 const items = [
                                                     { label: 'Certificados', value: certified, color: '#10B981', icon: '✓' },
                                                     { label: 'Fallados', value: failed, color: '#F43F5E', icon: '✗' },
                                                     { label: 'Bloqueados', value: blocked, color: '#F59E0B', icon: '⊘' },
+                                                    { label: 'Reprueba', value: retest, color: '#A855F7', icon: '↻' },
                                                     { label: 'En Progreso', value: inProgress, color: '#8B5CF6', icon: '◉' },
                                                     { label: 'Pendientes', value: pending, color: '#FB923C', icon: '⚠' },
                                                     { label: 'Backlog', value: backlog, color: '#94A3B8', icon: '◻' },
@@ -548,13 +570,11 @@ export default function DashboardView() {
                                 )}
 
                                 {chartTab === 'defectos' && (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div>
-                                            <h3 className="text-xs font-semibold uppercase mb-4" style={{ color: 'var(--text-secondary)', letterSpacing: '0.08em' }}>Estado de Defectos</h3>
-                                            <DefectsStatusChart data={filteredJiraData} />
-                                        </div>
-                                        <CycleDefectsChart data={filteredData} />
-                                    </div>
+                                    <ActiveDefectsTracking
+                                        rows={defectsByCycleData}
+                                        selectedProject={selectedProject}
+                                        excludedProjects={excludedProjects}
+                                    />
                                 )}
 
                                 {chartTab === 'cobertura' && <InsuranceCoverageChart />}

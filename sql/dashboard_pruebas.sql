@@ -39,10 +39,11 @@ run_stats AS (
     COUNTIF(t.status_id = 3) as untested_count,
     COUNT(t.id) as total_tests,
     
-    -- Run-Level Execution Status (Failed > Blocked > In Prog > Passed)
-    CASE 
-      WHEN COUNTIF(t.status_id IN (4, 5)) > 0 THEN 'Failed'
+    -- Run-Level Execution Status (Failed > Blocked > Retest(all) > Passed > In Progress)
+    CASE
+      WHEN COUNTIF(t.status_id = 5) > 0 THEN 'Failed'
       WHEN COUNTIF(t.status_id = 2) > 0 THEN 'Blocked'
+      WHEN COUNT(t.id) > 0 AND COUNTIF(t.status_id = 4) = COUNT(t.id) THEN 'Retest'
       WHEN COUNT(t.id) > 0 AND COUNTIF(t.status_id = 1) = COUNT(t.id) THEN 'Passed'
       WHEN COUNT(t.id) > 0 THEN 'In Progress'
       ELSE 'Untested'
@@ -109,7 +110,8 @@ plan_aggs AS (
     
     -- Aggregated Counts
     SUM(rs.passed_count) as total_passed,
-    SUM(rs.retest_count + rs.failed_count) as total_returned_cases,
+    SUM(rs.failed_count) as total_returned_cases,
+    SUM(rs.retest_count) as total_retest_cases,
     SUM(rs.process_count) as total_in_process,
     SUM(rs.blocked_count) as total_blocked,
     SUM(rs.untested_count) as total_untested,
@@ -117,11 +119,12 @@ plan_aggs AS (
     SUM(rs.total_acta_count) as total_acta_count,
     SUM(rs.defects_count) as total_defects,
     SUM(rs.iterations_count) as total_iterations,
-    
+
     -- Run-level aggregates
     COUNTIF(rs.run_status = 'Failed') as runs_failed,
     COUNTIF(rs.run_status = 'Blocked') as runs_blocked,
     COUNTIF(rs.run_status = 'Passed') as runs_passed,
+    COUNTIF(rs.run_status = 'Retest') as runs_retest,
     COUNTIF(rs.run_status = 'In Progress') as runs_in_progress,
     COUNTIF(rs.run_status = 'Untested') as runs_untested,
     
@@ -224,6 +227,7 @@ SELECT
   
   -- Chart Metrics (Test-Level Legacy)
   IF(project_id = 17, total_returned_cases, 0) as total_returned_cases,
+  IF(project_id = 17, COALESCE(total_retest_cases, 0), 0) as total_retest_cases,
   IF(project_id = 17, total_in_process, 0) as total_in_process,
   IF(project_id = 17, total_blocked, 0) as total_blocked,
   IF(project_id = 17, total_untested, 0) as total_untested,
@@ -232,6 +236,7 @@ SELECT
   IF(project_id = 17, runs_failed, 0) as runs_failed,
   IF(project_id = 17, runs_blocked, 0) as runs_blocked,
   IF(project_id = 17, runs_passed, 0) as runs_passed,
+  IF(project_id = 17, COALESCE(runs_retest, 0), 0) as runs_retest,
   IF(project_id = 17, runs_in_progress, 0) as runs_in_progress,
   IF(project_id = 17, runs_untested, 0) as runs_untested,
 

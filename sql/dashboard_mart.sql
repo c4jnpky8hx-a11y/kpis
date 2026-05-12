@@ -80,16 +80,21 @@ run_stats AS (
     COUNTIF(t.status_id = 3) as untested_count,
     COUNT(t.id) as total_tests,
     
-    -- Run-Level Execution Status (Failed > Blocked > Passed > Pending > Backlog > In Progress)
+    -- Run-Level Execution Status (Failed > Blocked > Retest(all) > Passed > Pending > Backlog > In Progress)
     -- Reglas:
-    --   Sin casos de prueba                                         → Backlog
-    --   Con casos, sin ejecución, fecha inicio futura              → Pending
-    --   Con casos, sin ejecución, fecha inicio pasada o sin fecha  → Backlog
-    --   Con casos, sin ejecución, sin fecha de inicio              → Backlog
+    --   Sin casos                                                  → Backlog
+    --   Algun caso Failed (5)                                       → Failed
+    --   Algun caso Blocked (2)                                      → Blocked
+    --   100% de casos en Retest (4)                                 → Retest
+    --   100% Passed                                                 → Passed
+    --   Sin ejecucion, fecha inicio futura                          → Pending
+    --   Sin ejecucion, fecha pasada o sin fecha                     → Backlog
+    --   Caso contrario (mezcla parcial)                             → In Progress
     CASE
       WHEN COUNT(t.id) = 0 THEN 'Backlog'
-      WHEN COUNTIF(t.status_id IN (4, 5)) > 0 THEN 'Failed'
+      WHEN COUNTIF(t.status_id = 5) > 0 THEN 'Failed'
       WHEN COUNTIF(t.status_id = 2) > 0 THEN 'Blocked'
+      WHEN COUNTIF(t.status_id = 4) = COUNT(t.id) THEN 'Retest'
       WHEN COUNTIF(t.status_id = 1) = COUNT(t.id) THEN 'Passed'
       WHEN COUNTIF(t.status_id = 1) = 0 AND COUNTIF(t.status_id IN (4, 5)) = 0
         AND COUNTIF(t.status_id = 2) = 0 AND COUNTIF(t.status_id = 6) = 0
@@ -213,7 +218,8 @@ plan_aggs AS (
     
     -- Aggregated Counts
     SUM(rs.passed_count) as total_passed,
-    SUM(rs.retest_count + rs.failed_count) as total_returned_cases,
+    SUM(rs.failed_count) as total_returned_cases,
+    SUM(rs.retest_count) as total_retest_cases,
     SUM(rs.process_count) as total_in_process,
     SUM(rs.blocked_count) as total_blocked,
     SUM(rs.untested_count) as total_untested,
@@ -221,11 +227,12 @@ plan_aggs AS (
     SUM(rs.total_acta_count) as total_acta_count,
     SUM(rs.defects_count) as total_defects,
     SUM(rs.iterations_count) as total_iterations,
-    
+
     -- Run-level aggregates
     COUNTIF(rs.run_status = 'Failed') as runs_failed,
     COUNTIF(rs.run_status = 'Blocked') as runs_blocked,
     COUNTIF(rs.run_status = 'Passed') as runs_passed,
+    COUNTIF(rs.run_status = 'Retest') as runs_retest,
     COUNTIF(rs.run_status = 'In Progress') as runs_in_progress,
     COUNTIF(rs.run_status = 'Backlog') as runs_backlog,
     COUNTIF(rs.run_status = 'Pending') as runs_pending,
@@ -293,15 +300,15 @@ SELECT
   project_name,
   
   -- 1. Iniciativas Certificadas / En Proceso
-  -- Un plan sin casos de prueba (total_tests = 0) es Backlog, no Certificada.
+  -- Certificada requiere que TODOS los tests pasen (no solo que el run este marcado como completed en TestRail)
   CASE
     WHEN plan_start_date IS NULL OR total_tests = 0 THEN 'Backlog'
-    WHEN all_runs_completed = 1 OR plan_is_completed OR total_passed = total_tests THEN 'Certificada'
+    WHEN total_tests > 0 AND total_passed = total_tests THEN 'Certificada'
     ELSE 'En Proceso'
   END as Estado_Iniciativa,
 
-  IF(total_tests > 0 AND (all_runs_completed = 1 OR plan_is_completed OR total_passed = total_tests), 1, 0) as is_certified,
-  IF((plan_start_date IS NOT NULL AND total_tests > 0) AND NOT (all_runs_completed = 1 OR plan_is_completed OR total_passed = total_tests), 1, 0) as is_in_process,
+  IF(total_tests > 0 AND total_passed = total_tests, 1, 0) as is_certified,
+  IF(plan_start_date IS NOT NULL AND total_tests > 0 AND total_passed < total_tests, 1, 0) as is_in_process,
   IF(plan_start_date IS NULL OR total_tests = 0, 1, 0) as is_backlog,
   
   -- 2. UAT Metrics (Project 4 Only)
@@ -353,6 +360,7 @@ SELECT
   
   -- Chart Metrics (Test-Level Legacy)
   IF(project_id NOT IN (12, 21), total_returned_cases, 0) as total_returned_cases,
+  IF(project_id NOT IN (12, 21), COALESCE(total_retest_cases, 0), 0) as total_retest_cases,
   IF(project_id NOT IN (12, 21), total_in_process, 0) as total_in_process,
   IF(project_id NOT IN (12, 21), total_blocked, 0) as total_blocked,
   IF(project_id NOT IN (12, 21), total_untested, 0) as total_untested,
@@ -361,6 +369,7 @@ SELECT
   IF(project_id NOT IN (12, 21), runs_failed, 0) as runs_failed,
   IF(project_id NOT IN (12, 21), runs_blocked, 0) as runs_blocked,
   IF(project_id NOT IN (12, 21), runs_passed, 0) as runs_passed,
+  IF(project_id NOT IN (12, 21), COALESCE(runs_retest, 0), 0) as runs_retest,
   IF(project_id NOT IN (12, 21), runs_in_progress, 0) as runs_in_progress,
   IF(project_id NOT IN (12, 21), runs_backlog, 0) as runs_backlog,
   IF(project_id NOT IN (12, 21), runs_pending, 0) as runs_pending,
