@@ -1,6 +1,7 @@
 import os
 import requests
 import logging
+from datetime import datetime, timezone
 from requests.auth import HTTPBasicAuth
 
 class JiraClient:
@@ -106,5 +107,6 @@ class JiraClient:
             "assignee": (fields.get('assignee') or {}).get('displayName'),
             "reporter": (fields.get('reporter') or {}).get('displayName'),
             "resolution": (fields.get('resolution') or {}).get('name'),
-            "url": f"{self.base_url}/browse/{issue.get('key')}"
+            "url": f"{self.base_url}/browse/{issue.get('key')}",
+            "synced_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S.%f"),
         }

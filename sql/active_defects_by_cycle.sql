@@ -10,7 +10,8 @@ WITH active_defects AS (
   SELECT key, summary, status, priority, created, url,
          TIMESTAMP_DIFF(CURRENT_TIMESTAMP(), created, DAY) as age_days
   FROM (
-    SELECT *, ROW_NUMBER() OVER(PARTITION BY key ORDER BY synced_at DESC) as rn
+    -- Order by Jira's own `updated` first; `synced_at` is the tiebreaker for legacy NULL rows.
+    SELECT *, ROW_NUMBER() OVER(PARTITION BY key ORDER BY updated DESC, synced_at DESC) as rn
     FROM `testrail_kpis.raw_jira_issues`
     WHERE issue_type IN ('Defecto_TestRail', 'Defecto-No-Productivo')
       AND status NOT IN ('Terminado', 'Cerrado', 'Cancelado', 'Mitigado')

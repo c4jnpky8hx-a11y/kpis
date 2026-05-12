@@ -620,7 +620,7 @@ export default function DashboardView() {
                                 </div>
                             </div>
                             <div className="p-6">
-                                {tableTab === 'ciclos_detalle' && <CycleDetailBreakdown data={filteredRuns} jiraData={jiraData} />}
+                                {tableTab === 'ciclos_detalle' && <CycleDetailBreakdown data={filteredRuns} jiraData={jiraData} defectsByCycle={defectsByCycleData} />}
                                 {tableTab === 'defectos_audit' && <UnlinkedDefectsTable excludedProjects={excludedProjects} selectedProject={selectedProject} projects={projects} />}
                                 {tableTab === 'defectos_detalle' && <DefectDetailTable />}
                                 {tableTab === 'resumen' && <ProjectSummaryTable data={filteredSummary} />}

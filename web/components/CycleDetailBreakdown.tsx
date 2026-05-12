@@ -16,6 +16,7 @@ type SortDir = 'asc' | 'desc';
 interface Props {
     data: any[];
     jiraData: any[];
+    defectsByCycle?: any[];
 }
 
 const STATUS_ORDER: Record<string, number> = {
@@ -54,7 +55,7 @@ function getPriorityStyle(priority: string): React.CSSProperties {
     return { background: 'var(--bg-gray-tint)', color: 'var(--text-secondary)', border: '1px solid var(--border-light)' };
 }
 
-export default function CycleDetailBreakdown({ data, jiraData }: Props) {
+export default function CycleDetailBreakdown({ data, jiraData, defectsByCycle }: Props) {
     const [searchTerm, setSearchTerm] = useState('');
     const [sortField, setSortField] = useState<SortField>('project');
     const [sortDir, setSortDir] = useState<SortDir>('asc');
@@ -62,7 +63,20 @@ export default function CycleDetailBreakdown({ data, jiraData }: Props) {
     const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
     const [collapsedProjects, setCollapsedProjects] = useState<Set<string>>(new Set());
 
-    // Build plan -> defects map from jiraData
+    // Build run_id -> defects map from per-cycle data (active_defects_by_cycle view).
+    // Falls back to plan-level mapping only if defectsByCycle is unavailable.
+    const runDefectsMap = useMemo(() => {
+        const map: Record<string, any[]> = {};
+        if (!defectsByCycle) return map;
+        for (const d of defectsByCycle) {
+            const key = String(d.run_id ?? '');
+            if (!key) continue;
+            if (!map[key]) map[key] = [];
+            map[key].push(d);
+        }
+        return map;
+    }, [defectsByCycle]);
+
     const planDefectsMap = useMemo(() => {
         const map: Record<string, any[]> = {};
         if (!jiraData) return map;
@@ -77,10 +91,16 @@ export default function CycleDetailBreakdown({ data, jiraData }: Props) {
         return map;
     }, [jiraData]);
 
-    // Get defect count for a run
-    const getDefectsForPlan = (planName: string): any[] => {
-        if (!planName) return [];
-        return planDefectsMap[planName] || [];
+    // Defects linked to the specific run (cycle), not the entire plan.
+    const getDefectsForRun = (runId: string | number | undefined, planName?: string): any[] => {
+        if (runId !== undefined && runId !== null) {
+            const byRun = runDefectsMap[String(runId)];
+            if (byRun) return byRun;
+            // If per-cycle data has loaded but this run has none, return empty (no fallback).
+            if (defectsByCycle && defectsByCycle.length > 0) return [];
+        }
+        // Fallback for the brief moment before defectsByCycle loads.
+        return planName ? (planDefectsMap[planName] || []) : [];
     };
 
     // Filtered + sorted data
@@ -93,7 +113,7 @@ export default function CycleDetailBreakdown({ data, jiraData }: Props) {
 
         filtered = filtered.map(run => ({
             ...run,
-            _defectCount: getDefectsForPlan(run.plan_name).length,
+            _defectCount: getDefectsForRun(run.run_id, run.plan_name).length,
         }));
 
         filtered.sort((a, b) => {
@@ -116,7 +136,7 @@ export default function CycleDetailBreakdown({ data, jiraData }: Props) {
         });
 
         return filtered;
-    }, [data, searchTerm, sortField, sortDir, planDefectsMap]);
+    }, [data, searchTerm, sortField, sortDir, planDefectsMap, runDefectsMap, defectsByCycle]);
 
     // Group by project
     const groupedByProject = useMemo(() => {
@@ -321,7 +341,7 @@ export default function CycleDetailBreakdown({ data, jiraData }: Props) {
                             const run = row.run;
                             const runKey = `${run.run_id}-${row.idx}`;
                             const isExpanded = expandedRows.has(runKey);
-                            const defects = getDefectsForPlan(run.plan_name);
+                            const defects = getDefectsForRun(run.run_id, run.plan_name);
                             const defectCount = defects.length;
 
                             const passed = Number(run.passed_count) || 0;
